@@ -1,0 +1,10 @@
+#!/bin/sh
+
+echo "Running build-search-index.js to update search indexes..."
+node build-search-index.js
+
+# Wait briefly to ensure files are written, then stage any changed search-index.json files
+sleep 1
+git add "*/search-index.json"
+
+echo "Search indexes updated and staged."

@@ -20,11 +20,10 @@ Today we will cover:
 
 In the tidyverse, missing data is categorized into two distinct forms:
 
-### 1. Explicit Missingness (The Presence of an Absence)
-The row exists in the dataset, but a specific cell is populated with an explicit `NA` marker.
-
-### 2. Implicit Missingness (The Absence of a Presence)
-The entire observation row is omitted from the table.
+| Missingness Type | Conceptual Definition | Practical Meaning |
+| :--- | :--- | :--- |
+| **Explicit Missingness** | *The Presence of an Absence* | The row exists in the dataset, but a specific cell is populated with an explicit `NA` marker. |
+| **Implicit Missingness** | *The Absence of a Presence* | The entire observation row is entirely omitted from the dataset. |
 
 ```r
 library(tidyverse)
@@ -162,13 +161,15 @@ passengers |>
 
 When presenting data, charts must be both **honest** (true to values) and **readable** (easy for human cognition):
 
-1. **Label Axes Clearly**: Always include descriptive titles and **measurement units** (%, USD, mm).
-2. **Clarify Visual Encodings**: Explain color palettes, shapes, and point sizes explicitly.
-3. **Select Appropriate Geometries**: Do not use discrete bar charts for continuous temporal trends.
-4. **Maximize Data-to-Ink Ratio**: Eliminate clutter, redundant borders, and gratuitous backgrounds.
-5. **Always Cite Data Sources**: Provide clear attribution and sample sizes ($n$).
-6. **Preserve Bar Baselines at Zero**: Length encodes magnitude; truncated bars distort proportions.
-7. **Limit Discrete Color Hues**: Restrict categorical palettes to $< 5$ colors to avoid cognitive overload.
+| Rule | Principle | Practical Application |
+| :---: | :--- | :--- |
+| **1** | **Label Axes Clearly** | Always include descriptive titles and **measurement units** (%, USD, mm). |
+| **2** | **Clarify Visual Encodings** | Explain color palettes, shapes, and point sizes explicitly. |
+| **3** | **Select Appropriate Geometries** | Do not use discrete bar charts for continuous temporal trends. |
+| **4** | **Maximize Data-to-Ink Ratio** | Eliminate clutter, redundant borders, and gratuitous backgrounds. |
+| **5** | **Always Cite Data Sources** | Provide clear attribution and sample sizes ($n$). |
+| **6** | **Preserve Bar Baselines at Zero**| Length encodes magnitude; truncated bars distort proportions. |
+| **7** | **Limit Discrete Color Hues** | Restrict categorical palettes to $< 5$ colors to avoid cognitive overload. |
 
 ---
 # Bad Visualization 1: Truncated Y-Axes on Bar Charts
@@ -315,15 +316,68 @@ ggplot(user_data, aes(x = Year, y = Users, color = Platform)) +
 ```
 
 ---
+# Bad Visualization 7: Dual Y-Axes
+
+> [!CAUTION] The Dual Axis Trap
+> Mapping two different scales to the left and right y-axes creates arbitrary crossing points and implies false correlations.
+
+```r
+library(tidyverse)
+
+# BAD: Dual Y-axes manipulate the crossover point by scaling axes differently
+ggplot(economics, aes(x = date)) +
+  geom_line(aes(y = psavert), color = "red") + 
+  geom_line(aes(y = uempmed * 10), color = "blue") + 
+  scale_y_continuous(sec.axis = sec_axis(~./10, name = "Unemployment")) # CONFUSING!
+
+# GOOD: Faceting separates the scales but aligns the temporal x-axis
+economics |>
+  select(date, psavert, uempmed) |>
+  pivot_longer(-date) |>
+  ggplot(aes(x = date, y = value, color = name)) +
+  geom_line(linewidth = 1) +
+  facet_wrap(~name, scales = "free_y", ncol = 1) +
+  theme_minimal() +
+  labs(title = "Savings Rate vs. Unemployment Duration", x = "Year")
+```
+
+---
+# Bad Visualization 8: The Spaghetti Chart
+
+> [!CAUTION] The Spaghetti Trap
+> Plotting dozens of unhighlighted categorical lines on the same plot creates a messy "spaghetti" blob that obscures individual trends.
+
+```r
+library(tidyverse)
+
+# Generate sample multi-trend data
+set.seed(42)
+spaghetti_data <- expand_grid(time = 1:20, group = letters[1:15]) |>
+  mutate(value = cumsum(rnorm(n())), .by = group)
+
+# BAD: All lines colored indiscriminately creates visual noise
+ggplot(spaghetti_data, aes(x = time, y = value, color = group)) +
+  geom_line(linewidth = 1) # MESSY & UNREADABLE!
+
+# GOOD: Highlight one focal trend in color while keeping others in gray context
+ggplot(spaghetti_data, aes(x = time, y = value, group = group)) +
+  geom_line(color = "gray80", linewidth = 0.8) +
+  geom_line(data = filter(spaghetti_data, group == "c"), color = "firebrick", linewidth = 1.5) +
+  labs(title = "Highlighting Trend 'C' Against the Cohort", x = "Time", y = "Value")
+```
+
+---
 # Module Summary & Key Takeaways
 
 1. **Explicit vs. Implicit**: Explicit missingness appears as `NA`; implicit missingness is an omitted row.
 2. **`complete()` & `fill()`**: `complete()` exposes implicit rows; `fill()` carries valid values down ledger columns.
 3. **`na_if()` & `coalesce()`**: `na_if()` turns sentinel codes into `NA`; `coalesce()` replaces `NA` with constants.
-4. **Six Bad Visualization Fixes**:
+4. **Eight Bad Visualization Fixes**:
    * *Truncated Bar Y-Axis* $\rightarrow$ Use zero baseline or a continuous line chart.
    * *High-Cardinality Pie* $\rightarrow$ Use sorted horizontal bar chart.
    * *Discrete Factor Legend Overload* $\rightarrow$ Use continuous gradient `scale_color_viridis_c()`.
    * *3D Occlusion* $\rightarrow$ Use 2D contour plot or heatmap.
    * *Floating Stacked Baselines* $\rightarrow$ Use multi-line chart or faceted subplots.
    * *Dodged Bar Clutter* $\rightarrow$ Use connected temporal line charts.
+   * *Dual Y-Axes* $\rightarrow$ Use faceted subplots aligned by a single x-axis.
+   * *Spaghetti Charts* $\rightarrow$ Grey out the background lines and highlight the focal line.

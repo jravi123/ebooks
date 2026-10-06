@@ -33,14 +33,9 @@ Today we will methodically cover:
 
 In 1977, statistician **John W. Tukey** published the pioneering book *Exploratory Data Analysis*, revolutionizing modern statistical practice:
 
-```
-               +---------------------------------------+
-               |             JOHN W. TUKEY             |
-               |               1915 - 2000             |
-               |    Pioneer of Exploratory Graphics,   |
-               |        Inventor of the Boxplot.       |
-               +---------------------------------------+
-```
+> ### **John W. Tukey (1915 – 2000)**
+> * Pioneer of Exploratory Graphics
+> * Inventor of the Boxplot
 
 > “The greatest value of a picture is when it forces us to notice what we never expected to see.”  
 > — **John W. Tukey**
@@ -58,22 +53,11 @@ According to Tukey, EDA encompasses:
 
 ### The Iterative EDA Inquiry Cycle:
 
-```
-                  +----------------------------------------+
-                  |   1. Generate questions about data     |<---------+
-                  +----------------------------------------+          |
-                                       |                              |
-                                       v                              |
-                  +----------------------------------------+          |
-                  | 2. Search for answers via visualization|          |
-                  |    transformation, and modeling        |          |
-                  +----------------------------------------+          |
-                                       |                              |
-                                       v                              |
-                  +----------------------------------------+          |
-                  | 3. Refine questions & generate new ones|----------+
-                  +----------------------------------------+
-```
+| Step | Action | Focus |
+| :---: | :--- | :--- |
+| **1** | **Generate Questions** | Ask open questions about data structure, distributions, and anomalies. |
+| **2** | **Search for Answers** | Transform, visualize, and model the data. |
+| **3** | **Refine & Iterate** | Use findings to generate sharper, deeper follow-up questions (loop back to Step 1). |
 
 EDA is not a one-pass checklist; it is an ongoing cycle of discovery and refinement.
 
@@ -97,20 +81,10 @@ The **National Institute of Standards and Technology (NIST)** defines the primar
 
 To explore any dataset systematically, focus your investigation around two primary questions:
 
-```
-                           +---------------------------+
-                           |  Two Fundamental Pillars  |
-                           +---------------------------+
-                                         |
-                   +---------------------+---------------------+
-                   |                                           |
-                   v                                           v
-       1. VARIATION (Within Variables)             2. COVARIATION (Between Variables)
-    How do values within a single variable       How do values in one variable change
-    vary from measurement to measurement?        in relation to changes in another?
-
-
-```
+| 1. Variation (Within Variables) | 2. Covariation (Between Variables) |
+| :--- | :--- |
+| **Core Question**: How do values within a single variable vary from measurement to measurement? | **Core Question**: How do values in one variable change in relation to changes in another? |
+| **Key Focus**: Distributions, typical values, spread, clusters, and outliers. | **Key Focus**: Trends, correlations, subgroups, and interactions. |
 
 ### 1. Questions About Variation:
 * What values are most common? Why?
@@ -128,18 +102,12 @@ To explore any dataset systematically, focus your investigation around two prima
 
 Before writing complex visual scripts, perform a rigorous initial inspection:
 
-```
-  1. IMPORT & VIEW       Load data; inspect first 6 rows (head) and last rows (tail).
-        |
-  2. DATA TYPES          Distinguish numeric, categorical, boolean, datetime (glimpse / str).
-        |
-  3. SUMMARY STATS       Compute min, median, mean, max, IQR, and standard deviation (summary).
-        |
-  4. AUDIT MISSINGNESS   Count NAs globally and on a per-column basis (colSums(is.na())).
-
-
-
-```
+| Step | Action | Key Functions & Objectives |
+| :---: | :--- | :--- |
+| **1** | **Import & View** | Load data; inspect first 6 rows (`head`) and last rows (`tail`). |
+| **2** | **Data Types** | Distinguish numeric, categorical, boolean, datetime (`glimpse`, `str`). |
+| **3** | **Summary Stats** | Compute min, median, mean, max, IQR, and standard deviation (`summary`). |
+| **4** | **Audit Missingness** | Count NAs globally and per column (`colSums(is.na())`). |
 
 ```r
 library(tidyverse)
@@ -161,25 +129,10 @@ summary(flights)
 
 Visualizing corrupted, noisy, or uncleaned data produces misleading charts and faulty conclusions. Clean anomalies *first*.
 
-```
-                         +-----------------------------------+
-                         |      DATA CLEANING PROTOCOL       |
-                         +-----------------------------------+
-                                           |
-                  +------------------------+------------------------+
-                  |                                                 |
-                  v                                                 v
-        [ MISSING VALUES ]                                  [ TRANSFORMATIONS ]
-  1. Imputation:                                      1. Type Casting:
-     - Numerical: Mean, Median, KNN, Regression.         - String -> Datetime / Factor.
-     - Categorical: Mode, "Missing" category.         2. Feature Engineering:
-  2. Deletion:                                           - Continuous Binning (cut).
-     - Row: Minimal loss, Missing at Random (MCAR).      - Log Transforms for Skew.
-     - Column: >50% missing, uninformative feature.
-
-
-
-```
+| Missing Values Protocol | Transformation & Feature Protocol |
+| :--- | :--- |
+| **1. Imputation:**<br>• *Numerical*: Mean, Median, KNN, Regression.<br>• *Categorical*: Mode, `"Missing"` category. | **1. Type Casting:**<br>• Convert strings to Datetime or Factors. |
+| **2. Deletion:**<br>• *Row Deletion*: Minimal data loss, Missing at Random (MCAR).<br>• *Column Deletion*: >50% missing or uninformative. | **2. Feature Engineering:**<br>• Continuous binning (`cut()`).<br>• Log transforms to correct heavy skewness. |
 
 ---
 
@@ -187,48 +140,26 @@ Visualizing corrupted, noisy, or uncleaned data produces misleading charts and f
 
 The geometry of your chart must match the mathematical measurement level of your variables:
 
-```
-                               +-----------------------------+
-                               |     VARIABLE DATA TYPE      |
-                               +-----------------------------+
-                                              |
-                     +------------------------+------------------------+
-                     |                                                 |
-                     v                                                 v
-             [ CONTINUOUS ]                                    [ CATEGORICAL ]
-    Infinite ordered numerical values                 Finite set of discrete categories
-    (e.g., carat, price, delay, temperature)          (e.g., cut, color, carrier, origin)
-                     |                                                 |
-                     v                                                 v
-        - Histograms (geom_histogram)                     - Bar Charts (geom_bar / geom_col)
-        - Density Plots (geom_density)                    - Frequency Tables (count)
-        - Boxplots (geom_boxplot)                         - Dot Plots / Pareto Charts
-
-
-
-```
+| Feature | Continuous Variables | Categorical Variables |
+| :--- | :--- | :--- |
+| **Definition** | Infinite ordered numerical values (`carat`, `price`, `delay`) | Finite set of discrete categories (`cut`, `color`, `carrier`) |
+| **Primary Geometries** | • Histograms (`geom_histogram`)<br>• Density plots (`geom_density`)<br>• Boxplots (`geom_boxplot`) | • Bar charts (`geom_bar`, `geom_col`)<br>• Frequency tables (`count()`)<br>• Dot plots / Pareto charts |
 
 ---
 
 # Chart Selection Matrix: What Chart to Use?
 
-```
-+-------------------+------------------------+---------------------------------------------+
-| Variables         | Chart Type             | Primary Purpose / Diagnostic Question       |
-+-------------------+------------------------+---------------------------------------------+
-| 1 Continuous      | Histogram / Boxplot    | Distribution shape, spread, skew, outliers  |
-| 1 Categorical     | Bar Chart              | Category frequencies, class imbalance       |
-| Cont. + Cat.      | Comparative Boxplots   | Median differences across groups, variance  |
-| Cont. + Cat.      | Violin Plot            | Full multimodal distribution across groups  |
-| 2 Categorical     | Heatmap (`geom_tile`)  | Joint frequency counts, cross-tabulations   |
-| 2 Categorical     | Count Plot             | Proportional point size counts              |
-| 2 Continuous      | Scatter Plot           | Linear/non-linear correlation, clustering   |
-| 2 Continuous      | 2D Density (`bin2d`)   | Density concentration without overplotting  |
-| Multi-Numeric     | Pairs Plot (`pairs()`) | All-against-all correlation matrix          |
-+-------------------+------------------------+---------------------------------------------+
-
-
-```
+| Variables | Recommended Chart | Primary Purpose / Diagnostic Question |
+| :--- | :--- | :--- |
+| **1 Continuous** | Histogram / Boxplot | Distribution shape, spread, skewness, outliers |
+| **1 Categorical** | Bar Chart | Category frequencies, class imbalance |
+| **Cont. + Cat.** | Comparative Boxplots | Group medians, variance, and IQR differences |
+| **Cont. + Cat.** | Violin Plot | Multimodal density profiles across categories |
+| **2 Categorical** | Heatmap (`geom_tile`) | Joint frequency counts & cross-tabulations |
+| **2 Categorical** | Count Plot (`geom_count`) | Proportional point size joint counts |
+| **2 Continuous** | Scatter Plot (`geom_point`) | Linear/non-linear correlation, clustering |
+| **2 Continuous** | 2D Density (`geom_bin2d`) | Density concentration without overplotting |
+| **Multi-Numeric** | Pairs Plot (`pairs()`) | All-against-all correlation matrix |
 
 ---
 
@@ -236,21 +167,17 @@ The geometry of your chart must match the mathematical measurement level of your
 
 Color is a powerful visual variable, but misuse can confuse readers and obscure patterns:
 
-```
-  1. CONTINUOUS DATA: Use Color Gradients / Ramps
-     - Monochromatic or diverging ramps (e.g., Viridis, scale_fill_gradient).
-     - Maps smoothly to numeric magnitudes.
+1. **Continuous Data: Use Color Gradients / Ramps**
+   * Monochromatic or diverging ramps (e.g., `viridis`, `scale_fill_gradient`).
+   * Maps smoothly and perceptually uniformly to numeric magnitudes.
 
-  2. CATEGORICAL DATA: Limit Discrete Colors (< 5 Categories)
-     - Human short-term visual memory cannot track > 5 colors without constant legend checks.
-     - If you have 10+ categories, use facets or highlight only the top 3 categories in color!
+2. **Categorical Data: Limit Discrete Colors (< 5 Categories)**
+   * Human short-term visual memory cannot track > 5 colors without constant legend lookups.
+   * If you have 10+ categories, use facets or highlight only the top 3 categories in color.
 
-  3. BE KIND TO YOUR READER
-     - Choose colorblind-friendly palettes (viridis, colorbrewer).
-     - Never use color purely for decoration.
-
-
-```
+3. **Be Kind to Your Reader**
+   * Choose colorblind-friendly palettes (`viridis`, `RColorBrewer`).
+   * Never use color purely for decorative purposes.
 
 ---
 
@@ -266,20 +193,6 @@ library(tidyverse)
 diamonds |> glimpse()
 ```
 
-```
-Rows: 53,940
-Columns: 10
-$ carat   <dbl> 0.23, 0.21, 0.23, 0.29, 0.31, 0.24, 0.24, 0.26, 0.22, 0.23...
-$ cut     <ord> Ideal, Premium, Good, Premium, Good, Very Good, Very Good...
-$ color   <ord> E, E, E, I, J, J, I, H, E, I, J, J, F, J, E, E, I, J, J, J...
-$ clarity <ord> SI2, SI1, VS1, VS2, SI2, VVS2, VVS1, SI1, VS2, VS1, SI1...
-$ depth   <dbl> 61.5, 59.8, 56.9, 62.4, 63.3, 62.8, 62.3, 61.9, 65.1, 59.4...
-$ table   <dbl> 55, 61, 65, 58, 58, 57, 57, 55, 61, 61, 54, 56, 61, 54, 54...
-$ price   <int> 326, 326, 327, 334, 335, 336, 336, 337, 337, 338, 339, 340...
-$ x       <dbl> 3.95, 3.89, 4.05, 4.20, 4.34, 3.94, 3.95, 4.07, 3.87, 4.00...
-$ y       <dbl> 3.98, 3.84, 4.07, 4.23, 4.35, 3.96, 3.98, 4.11, 3.78, 4.05...
-$ z       <dbl> 2.43, 2.31, 2.31, 2.63, 2.75, 2.48, 2.47, 2.53, 2.49, 2.39...
-```
 
 ---
 
@@ -300,23 +213,7 @@ str(diamonds)
 summary(diamonds)
 ```
 
-```
-     carat               cut        color      clarity          depth      
- Min.   :0.2000   Fair     : 1610   D: 6775   SI1    :13065   Min.   :43.00  
- 1st Qu.:0.4000   Good     : 4906   E: 9797   VS2    :12258   1st Qu.:61.00  
- Median :0.7000   Very Good:12082   F: 9542   SI2    : 9194   Median :61.80  
- Mean   :0.7979   Premium  :13791   G:11292   VS1    : 8171   Mean   :61.75  
- 3rd Qu.:1.0400   Ideal    :21551   H: 8304   VVS2   : 5066   3rd Qu.:62.50  
- Max.   :5.0100                     I: 5422   VVS1   : 3655   Max.   :79.00  
-                                    J: 2808   (Other): 1779                  
-     price             x                y                z         
- Min.   :  326   Min.   : 0.000   Min.   : 0.000   Min.   : 0.000  
- 1st Qu.:  950   1st Qu.: 4.710   1st Qu.: 4.720   1st Qu.: 2.910  
- Median : 2401   Median : 5.700   Median : 5.710   Median : 3.530  
- Mean   : 3933   Mean   : 5.731   Mean   : 5.735   Mean   : 3.539  
- 3rd Qu.: 5324   3rd Qu.: 6.540   3rd Qu.: 6.540   3rd Qu.: 4.040  
- Max.   :18823   Max.   :10.740   Max.   :58.900   Max.   :31.800  
-```
+
 
 > **Immediate Anomaly Spotted**: Minimum values for `x`, `y`, `z` are `0.000` mm! Diamonds cannot have a physical dimension of 0 mm (data entry error).
 
@@ -336,12 +233,7 @@ sum(is.na(diamonds))
 colSums(is.na(diamonds))
 ```
 
-```
-[1] 0
 
-  carat     cut   color clarity   depth   table   price       x       y       z 
-      0       0       0       0       0       0       0       0       0       0 
-```
 
 The `diamonds` dataset contains zero missing cells. If NAs were present, we would evaluate imputation vs. row deletion.
 
@@ -387,11 +279,14 @@ diamonds |>
   )
 ```
 
-```
-                      Boxplot Architecture
-  +------------------+ [===|===] ------------------+  *  *    *     * (Outliers)
-  Min (0.2)          Q1  Median  Q3                Max (1.5 IQR)
-```
+| Boxplot Component | Value / Metric | Diagnostic Interpretation |
+| :--- | :--- | :--- |
+| **Lower Whisker (Min)** | `0.20` ct | Smallest observed value within lower fence ($Q_1 - 1.5 \times \text{IQR}$) |
+| **Q1 (25th Percentile)** | `0.40` ct | 25% of diamonds weigh $\le 0.40$ carats |
+| **Median (50th Percentile)**| `0.70` ct | Center of distribution |
+| **Q3 (75th Percentile)** | `1.04` ct | 75% of diamonds weigh $\le 1.04$ carats |
+| **Upper Fence (Max Whisker)**| `2.00` ct | $Q_3 + 1.5 \times \text{IQR} = 1.04 + 0.96$ |
+| **Outlier Points** | $> 2.00$ ct | Extreme values (e.g. rare 5.01 ct gemstones) |
 
 * **Upper Threshold & Outliers**: Red dots represent values above $Q_3 + 1.5 \times \text{IQR} = 1.04 + 0.96 = 2.00$ ct. (A max carat of 5.01 is a legitimate rare gemstone, unlike an `x = 0` data error).
 * **Lower Threshold & Lower Whisker (0.2)**: By formula, the lower fence is $Q_1 - 1.5 \times \text{IQR} = 0.40 - 0.96 = -0.56$. Since diamond carats cannot be negative, there are no lower outliers; the lower whisker stops at the smallest observed data point in the dataset (**0.20 ct**).
@@ -556,10 +451,8 @@ ggplot(
   )
 ```
 
-<pre>
-# Syntax Breakdown:
-# fct_reorder(.f = categorical_variable, .x = quantitative_metric, .fun = median)
-</pre>
+> **Syntax Breakdown**:  
+> `fct_reorder(.f = categorical_variable, .x = quantitative_metric, .fun = median)`
 
 `fct_reorder()` instantly clarifies ranking and relative group performance.
 
@@ -712,14 +605,10 @@ ggplot(diamonds, aes(x = carat, y = price)) +
   )
 ```
 
-```
-+----------------------------------------------------------------+
-| Alternative 2D Density Geometries:                             |
-| * geom_hex(): Hexagonal binning (requires library(hexbin))     |
-| * geom_density_2d(): Bivariate contour lines                   |
-| * stat_density_2d(geom = "raster"): Smooth raster density map  |
-+----------------------------------------------------------------+
-```
+> ### Alternative 2D Density Geometries:
+> * **`geom_hex()`**: Hexagonal binning (requires `library(hexbin)`)
+> * **`geom_density_2d()`**: Bivariate contour lines
+> * **`stat_density_2d(geom = "raster")`**: Smooth raster density map
 
 ---
 
@@ -813,14 +702,9 @@ Through visual and numerical exploration, we discovered four major empirical ins
 
 EDA is the vital precursor to statistical modeling and machine learning:
 
-```
-    +-------------------+      +-------------------+      +-------------------+
-    |  EXPLORATORY EDA  | ---> |    FEATURE ENG    | ---> |     MODELING      |
-    |  - Outliers       |      |  - Log(Price)     |      |  - Linear Model   |
-    |  - Confounding    |      |  - Remove Errors  |      |  - Random Forest  |
-    |  - Non-linearity  |      |  - Polynomials    |      |  - Neural Nets    |
-    +-------------------+      +-------------------+      +-------------------+
-```
+| 1. Exploratory EDA | $\rightarrow$ | 2. Feature Engineering | $\rightarrow$ | 3. Predictive Modeling |
+| :--- | :---: | :--- | :---: | :--- |
+| • Detect & flag outliers<br>• Identify confounding variables<br>• Uncover non-linear patterns | $\rightarrow$ | • Log-transform skewed features<br>• Dimension/unit conversions<br>• Create interaction terms | $\rightarrow$ | • Linear Models (`lm`)<br>• Random Forests / XGBoost<br>• Neural Networks |
 
 ### Next Steps in the Modeling Pipeline:
 * Use log-transforms on `price` and `carat` to linearize the exponential relationship.

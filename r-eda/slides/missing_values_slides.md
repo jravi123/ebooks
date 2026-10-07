@@ -120,44 +120,36 @@ print(filled_sales)
 ---
 # Auditing and Imputing Missing Values
 
-Let's audit missing data on a sample passenger manifest:
+Let's audit missing data on the Titanic passenger manifest:
 
 ```r
 library(tidyverse)
 
-# Sample manifest
-passengers <- tibble(
-  name = c("Braund, Mr. Owen", "Cumings, Mrs. John", "Heikkinen, Miss. Laina", "Futrelle, Mrs. Jacques", "Allen, Mr. William"),
-  pclass = c(3, 1, 3, 1, 3),
-  age = c(22, 38, 26, 35, NA),
-  survived = c(0, 1, 1, 1, 0)
-)
+# Load Titanic manifest
+titanic = read.csv('https://raw.githubusercontent.com/jravi123/datasets/refs/heads/main/titanic.csv')
 
 # Count missing cells per column
-colSums(is.na(passengers))
+colSums(is.na(titanic))
 ```
 
-### Median Imputation by Class:
+### Imputation by Class-Specific Mean:
+Instead of using the overall average age, a better strategy is to use the average age specific to the passenger class.
+
 ```r
 library(tidyverse)
 
-passengers <- tibble(
-  pclass = c(1, 1, 2, 2, 3, 3),
-  age = c(38, NA, 29, 31, 22, NA)
-)
-
-# Impute missing ages with class-specific median
-passengers |>
+# Impute missing ages with class-specific mean
+titanic |>
   group_by(pclass) |>
   mutate(
-    class_median = median(age, na.rm = TRUE),
-    age_imputed = coalesce(age, class_median)
+    class_mean = mean(age, na.rm = TRUE),
+    age_imputed = coalesce(age, class_mean)
   ) |>
   ungroup()
 ```
 
 ---
-# The Seven Golden Rules of Visual Excellence
+# Some Rules of Visual Excellence
 
 When presenting data, charts must be both **honest** (true to values) and **readable** (easy for human cognition):
 
@@ -170,6 +162,39 @@ When presenting data, charts must be both **honest** (true to values) and **read
 | **5** | **Always Cite Data Sources** | Provide clear attribution and sample sizes ($n$). |
 | **6** | **Preserve Bar Baselines at Zero**| Length encodes magnitude; truncated bars distort proportions. |
 | **7** | **Limit Discrete Color Hues** | Restrict categorical palettes to $< 5$ colors to avoid cognitive overload. |
+
+---
+# Good Visualization Examples
+
+Here are some examples of effective visualizations that follow the principles of visual excellence:
+
+## Example 1: Nones
+<img src='images/nones.jpeg' width=500px />
+*Source: Our World in Data (https://ourworldindata.org)*
+
+
+---
+# Example 2: AI Systems
+<img src='images/ai-systems.png' width=500px />
+*Source: Our World in Data (https://ourworldindata.org/artificial-intelligence)*
+
+---
+
+## Example 3: Europe Unemployment
+<img src='images/europe-unemployment.jpeg' width=500px />
+*Source: Our World in Data (https://ourworldindata.org/work-employment)*
+
+---
+
+## Example 4: Fish Stock
+<img src='images/fish-stock.png' width=500px />
+*Source: Our World in Data (https://ourworldindata.org/fish-and-overfishing)*
+
+---
+
+## Example 5: Page Rank (Stem Cell Wars)
+<img src='images/stem-cell-wars.jpeg' width=500px />
+*Source: Our World in Data (https://ourworldindata.org)*
 
 ---
 # Bad Visualization 1: Truncated Y-Axes on Bar Charts
@@ -185,6 +210,10 @@ inflation_data <- tibble(Year = 2021:2024, Value = c(5.51, 6.65, 4.38, 4.56))
 ggplot(inflation_data, aes(x = factor(Year), y = Value)) + 
   geom_col(fill = "steelblue") +
   coord_cartesian(ylim = c(4.4, 7.0)) # MISLEADING!
+
+```
+
+```r
 
 # GOOD: Line chart captures temporal trajectory with an honest zero baseline
 ggplot(inflation_data, aes(x = Year, y = Value)) + 
@@ -210,6 +239,10 @@ diamonds |>
   geom_bar(stat = "identity", width = 1) +
   coord_polar("y") # MISLEADING!
 
+```
+
+```r
+
 # GOOD: Sorted horizontal bar chart aligns all classes along a shared linear baseline
 diamonds |> 
   count(color) |> 
@@ -233,6 +266,11 @@ diamonds |>
   ggplot(aes(x = carat, y = price, color = factor(z))) + 
   geom_point() # MISLEADING / UNREADABLE!
 
+```
+
+
+```r
+
 # GOOD: Retain numeric scale and use a continuous, perceptually uniform color ramp
 diamonds |> 
   filter(carat > 2) |> 
@@ -248,14 +286,22 @@ diamonds |>
 > [!CAUTION] The Perspective & Occlusion Trap
 > 3D plots create perspective parallax and occlusion (foreground surfaces hiding background observations).
 
-```r
-library(plot3D)
+Both plots below visualize the exact same mathematical "bowl" function: **$z = x^2 + y^2$**.
 
+* **The 3D plot (Bad):** The front edge physically hides the data behind it (occlusion), and perspective distortion makes it impossible to accurately read or compare values.
+* **The 2D contour (Good):** Looks straight down like a topographical map, using color for height (Z). Nothing is hidden, and the grid scales are perfectly accurate.
+
+```r
 x <- y <- seq(-3, 3, length.out = 50)
 z <- outer(x, y, function(x, y) x^2 + y^2)
 
 # BAD: 3D surface hides back coordinates and distorts metric distances
-persp3D(x, y, z, theta = 30, phi = 20) # MISLEADING!
+persp(x, y, z, theta = 30, phi = 20, col = "lightblue", shade = 0.5) # MISLEADING!
+
+```
+
+
+```r
 
 # GOOD: 2D Filled Contour plot reveals full landscape without perspective distortion
 filled.contour(
@@ -281,9 +327,15 @@ user_data <- tibble(
   Users = c(250, 200, 150, 260, 240, 170, 310, 260, 200)
 )
 
+
 # BAD: Stacked bars make comparing Facebook & Twitter trends over time difficult
 ggplot(user_data, aes(x = factor(Year), y = Users, fill = Platform)) +
   geom_bar(stat = "identity") # HARD TO COMPARE!
+
+```
+
+
+```r
 
 # GOOD: Multi-line chart places all platforms on a shared vertical zero baseline
 ggplot(user_data, aes(x = Year, y = Users, color = Platform)) +
@@ -305,6 +357,10 @@ library(tidyverse)
 # BAD: Cluttered bar clusters obscure the slope and trajectory of user trends
 ggplot(user_data, aes(x = factor(Year), y = Users, fill = Platform)) +
   geom_bar(stat = "identity", position = "dodge") # CLUTTERED!
+
+```
+
+```r
 
 # GOOD: Clean line paths enable instant visual trajectory and slope tracking
 ggplot(user_data, aes(x = Year, y = Users, color = Platform)) +
@@ -329,6 +385,11 @@ ggplot(economics, aes(x = date)) +
   geom_line(aes(y = psavert), color = "red") + 
   geom_line(aes(y = uempmed * 10), color = "blue") + 
   scale_y_continuous(sec.axis = sec_axis(~./10, name = "Unemployment")) # CONFUSING!
+
+```
+
+
+```r
 
 # GOOD: Faceting separates the scales but aligns the temporal x-axis
 economics |>
@@ -359,6 +420,11 @@ spaghetti_data <- expand_grid(time = 1:20, group = letters[1:15]) |>
 ggplot(spaghetti_data, aes(x = time, y = value, color = group)) +
   geom_line(linewidth = 1) # MESSY & UNREADABLE!
 
+```
+
+
+```r
+
 # GOOD: Highlight one focal trend in color while keeping others in gray context
 ggplot(spaghetti_data, aes(x = time, y = value, group = group)) +
   geom_line(color = "gray80", linewidth = 0.8) +
@@ -366,18 +432,19 @@ ggplot(spaghetti_data, aes(x = time, y = value, group = group)) +
   labs(title = "Highlighting Trend 'C' Against the Cohort", x = "Time", y = "Value")
 ```
 
+
 ---
+# You will find bad visualizations a lot!
+
+Sometimes the easiest way to learn what to do is to study what not to do...
+
+[Reference: Bad Visualisations Tumblr](https://www.tumblr.com/badvisualisations)
+
+---
+
 # Module Summary & Key Takeaways
 
 1. **Explicit vs. Implicit**: Explicit missingness appears as `NA`; implicit missingness is an omitted row.
 2. **`complete()` & `fill()`**: `complete()` exposes implicit rows; `fill()` carries valid values down ledger columns.
 3. **`na_if()` & `coalesce()`**: `na_if()` turns sentinel codes into `NA`; `coalesce()` replaces `NA` with constants.
-4. **Eight Bad Visualization Fixes**:
-   * *Truncated Bar Y-Axis* $\rightarrow$ Use zero baseline or a continuous line chart.
-   * *High-Cardinality Pie* $\rightarrow$ Use sorted horizontal bar chart.
-   * *Discrete Factor Legend Overload* $\rightarrow$ Use continuous gradient `scale_color_viridis_c()`.
-   * *3D Occlusion* $\rightarrow$ Use 2D contour plot or heatmap.
-   * *Floating Stacked Baselines* $\rightarrow$ Use multi-line chart or faceted subplots.
-   * *Dodged Bar Clutter* $\rightarrow$ Use connected temporal line charts.
-   * *Dual Y-Axes* $\rightarrow$ Use faceted subplots aligned by a single x-axis.
-   * *Spaghetti Charts* $\rightarrow$ Grey out the background lines and highlight the focal line.
+4. Review your final diagrams to confirm its correctness.

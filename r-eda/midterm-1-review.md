@@ -46,7 +46,9 @@ mpg |> ggplot() + geom_point(aes(x = displ, y = hwy, color = cyl))
 # Fix: Coerce cyl to a factor to obtain discrete categorical colors
 mpg |> 
   ggplot() + 
-  geom_point(aes(x = displ, y = hwy, color = as.factor(cyl)))
+  geom_point(aes(x = displ, y = hwy, color = as.factor(cyl))) +
+  labs(color = 'cyl')
+
 ```
 
 ---
@@ -55,9 +57,9 @@ mpg |>
 
 What is the output of the below expression?
 
-```r
+<pre>
 sum(c(4, 5, NA, T, F, T))
-```
+</pre>
 
 ### Explanation & Diagnosis
 * `c(4, 5, NA, T, F, T)` creates a vector containing numbers, boolean logicals (`T` = 1, `F` = 0), and an `NA` (missing value).
@@ -65,59 +67,16 @@ sum(c(4, 5, NA, T, F, T))
 
 ### Output
 
-```r
-[1] NA
-```
+<pre>
+NA
+</pre>
 
 *(Note: If `na.rm = TRUE` were passed, `T` would be coerced to 1 and `F` to 0, producing $4 + 5 + 1 + 0 + 1 = 11$.)*
 
----
-
-# Question 3: Column Selection with Tidyselect Helpers
-
-Write a statement that displays only those columns that start with the letter `'m'` in the `'mpg'` dataset.
-
-```r
-mpg |> glimpse()
-```
-
-### Solution Code
-
-```r
-mpg |> select(starts_with('m'))
-```
 
 ---
 
-# Question 4: Aggregating & Visualizing Trends Over Time
-
-```r
-storms |> glimpse()
-```
-
-You see the glimpse of the `storms` dataset as shown above.
-
-Write code to display the total number of storms for each year as shown in the diagram below:
-
-```r
-storms |> count(year) |> ggplot(aes(x = year, y = n)) + geom_line() + geom_point()
-```
-
-Enter your code as your solution.
-
-### Solution Code
-
-```r
-storms |> 
-  count(year) |> 
-  ggplot(aes(x = year, y = n)) + 
-  geom_line() + 
-  geom_point()
-```
-
----
-
-# Question 5: Multi-Level Grouping & Summary Rollups
+# Question 3: Multi-Level Grouping & Summary Rollups
 
 What is the output of the below statement? Describe the answer in words and sentences.
 
@@ -133,7 +92,7 @@ storms |> group_by(year, category) |> summarise(n = n()) |> summarize(n = n())
 
 ---
 
-# Question 6: Filtering by Top Slices & Visualizing Subsets
+# Question 4: Filtering by Top Slices & Visualizing Subsets
 
 Using the `nycflights13` database, I find the top 5 destinations and then I want to plot the top 5 destinations as a bar chart. However, my code is not working as shown below. Please fix the error.
 
@@ -161,13 +120,10 @@ flights |>
 
 ---
 
-# Question 7: Filtering via Relational Joins
+# Question 5: Filtering via Relational Joins
 
 Write the above expression as a join instead.
 
-```r
-flights |> count(dest) |> slice_max(n = 5, n) |> left_join(flights)
-```
 
 ### Solution Code
 
@@ -180,7 +136,7 @@ flights |>
 
 ---
 
-# Question 8: Custom Function for Outlier Detection (IQR Rule)
+# Question 6: Custom Function for Outlier Detection (IQR Rule)
 
 Write a function to compute the outliers of a given vector. Return the outliers from the function. An outlier is defined as any data point that falls more than 1.5 times the interquartile range beyond the first or third quartiles.
 
@@ -207,21 +163,10 @@ v <- c(1:10, 100)
 get_outliers(v)
 ```
 
----
-
-# Question 9: Multi-Condition Filtering with `filter()`
-
-Write a query to get all records in `'mpg'` dataset that have `hwy` value greater than 30 and `cty` value greater than 25.
-
-### Solution Code
-
-```r
-mpg |> filter(cty > 25, hwy > 30)
-```
 
 ---
 
-# Question 10: Reshaping Aggregated Summaries with `pivot_wider()`
+# Question 7: Reshaping Aggregated Summaries with `pivot_wider()`
 
 ```r
 flights |> glimpse()
@@ -229,9 +174,12 @@ flights |> glimpse()
 
 Show all the carriers and the total number of unique destinations they fly to as shown below:
 
-```r
-flights |> group_by(carrier) |> summarize(total_dest = n_distinct(dest)) |> pivot_wider(names_from = carrier, values_from = total_dest)
-```
+<pre>
+# A tibble: 1 × 16
+   `9E`    AA    AS    B6    DL    EV    F9    FL    HA    MQ    OO    UA    US    VX    WN    YV
+  <int> <int> <int> <int> <int> <int> <int> <int> <int> <int> <int> <int> <int> <int> <int> <int>
+1    49    19     1    42    40    61     1     3     1    20     5    47     6     5    11     3
+</pre>
 
 ### Solution Code
 
@@ -251,7 +199,7 @@ flights |>
 
 ---
 
-# Question 11: Feature Mutation with Timezone Adjustments
+# Question 8: Feature Mutation with Timezone Adjustments
 
 Add a new column to show `sched_dep_time` in PST. Assume the given time is in EST (3 hours / 300 units behind).
 

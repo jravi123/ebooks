@@ -103,3 +103,5 @@
 * Appendices
     * [Glossary](glossary.md)
     * [Scratchpad](scratch.md)
+    * [Midterm 1 Review](midterm-1-review.md)
+

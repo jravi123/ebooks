@@ -1,0 +1,4 @@
+# Local executables and scripts
+compile-quiz-app.sh
+*.sh
+.DS_Store

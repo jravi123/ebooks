@@ -34,6 +34,7 @@ In the below diagram, I would like to have every unique value of the cylinder (`
 
 ```r
 library(tidyverse)
+library(nycflights13)
 mpg |> ggplot() + geom_point(aes(x = displ, y = hwy, color = cyl))
 ```
 

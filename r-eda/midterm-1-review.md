@@ -33,6 +33,7 @@ Here are some functions you may be using in this exam:
 In the below diagram, I would like to have every unique value of the cylinder (`cyl`) to have a different color. Why is the color shown in a blue gradient currently? How will you fix the code to get different colors for each distinct `cyl` value?
 
 ```r
+library(tidyverse)
 mpg |> ggplot() + geom_point(aes(x = displ, y = hwy, color = cyl))
 ```
 

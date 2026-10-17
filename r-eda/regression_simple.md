@@ -1,5 +1,50 @@
 # Simple Linear Regression & Model Diagnostics
 
+```r Notice="" block=setup
+library(tidyverse)
+library(modelr)
+
+processors <- read.csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/all-data.csv")
+
+get_column <- function(x, y) {
+  benchmark <- paste(paste("Spec", x, sep = ""), "..average.base.", sep = "")
+  ix <- !is.na(processors[, benchmark])
+  return(processors[ix, y])
+}
+
+extract_data <- function(benchmark) {
+  temp <- paste(paste("Spec", benchmark, sep = ""), "..average.base.", sep = "")
+  perf <- get_column(benchmark, temp)
+  max_perf <- max(perf)
+  min_perf <- min(perf)
+  range <- max_perf - min_perf
+  nperf <- 100 * (perf - min_perf) / range
+
+  clock <- get_column(benchmark, "Processor.Clock..MHz.")
+  threads <- get_column(benchmark, "Threads.core")
+  cores <- get_column(benchmark, "Cores")
+  TDP <- get_column(benchmark, "TDP")
+  transistors <- get_column(benchmark, "Transistors..millions.")
+  dieSize <- get_column(benchmark, "Die.size..mm.2.")
+  voltage <- get_column(benchmark, "Voltage..low.")
+  featureSize <- get_column(benchmark, "Feature.Size..microns.")
+  channel <- get_column(benchmark, "Channel.length..microns.")
+  FO4delay <- get_column(benchmark, "FO4.Delay..ps.")
+  L1icache <- get_column(benchmark, "L1..instruction...on.chip.")
+  L1dcache <- get_column(benchmark, "L1..data...on.chip.")
+  L2cache <- get_column(benchmark, "L2..on.chip.")
+  L3cache <- get_column(benchmark, "L3..on.chip.")
+
+  return(data.frame(
+    nperf, perf, clock, threads, cores, TDP, transistors, dieSize,
+    voltage, featureSize, channel, FO4delay, L1icache, L1dcache, L2cache, L3cache
+  ))
+}
+
+int92.dat <- extract_data("Int1992")
+int00.dat <- extract_data("Int2000")
+```
+
 ## Why Learn Simple Linear Regression in Data Analytics?
 
 Visualizations let you spot relationships, but statistical models let you quantify them. Imagine you are studying consumer spending patterns, real estate valuations, or computer hardware performance:

@@ -60,6 +60,7 @@
 *  12: Databases & SQL
     * [Interacting with SQL in R](sql_queries.md)
     * [Slides: SQL & Database Queries](slides/sql_databases_slides.md)
+    * [Slides: SQL Workbook & Flights Case Study](slides/sql_workbook_slides.md)
 
 *  13: Categorical Data & Factors
     * [Categorical Data & Factors](factors.md)

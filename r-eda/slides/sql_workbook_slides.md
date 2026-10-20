@@ -2,14 +2,14 @@
 ## Result Iterators, Parameterized Queries, SQL Injection, and 10 Questions on `flights`
 
 ### Lecture Agenda
-1. **Part 1: Setting Up `nycflights13` in SQLite & Result Set Iterators**
+1. Setting Up `nycflights13` in SQLite & Result Set Iterators**
    * Creating an in-memory SQLite database from `library(nycflights13)` (`DBI` & `RSQLite`)
    * The `nycflights13` Entity-Relationship Diagram (ERD)
    * Result set objects (`dbSendQuery`), metadata (`dbColumnInfo`), and incremental fetching (`dbFetch(res, n = 1)` vs. `dbFetch(res)`)
-2. **Part 2: Parameterized Queries & SQL Injection Defense**
+2. Parameterized Queries & SQL Injection Defense**
    * Using `?` placeholders and `params = list(...)`
    * How **SQL Injection Attacks** (`' OR 'a'='a`) work and how parameterized queries prevent them
-3. **Part 3: Ten Analytical Questions About `flights`**
+3. Ten Analytical Questions About `flights`**
    * Aggregations, nested subqueries, `RANK() OVER (...)`, SQLite `strftime()` & Unix epochs, `JOIN` + `HAVING BETWEEN`, `DISTINCT` subqueries, `IS NULL`, and `NOT LIKE` pattern matching
 
 ---
@@ -35,25 +35,28 @@ dbWriteTable(con, "airports", airports, overwrite = TRUE)
 dbWriteTable(con, "airlines", airlines, overwrite = TRUE)
 dbWriteTable(con, "planes",   planes,   overwrite = TRUE)
 
+# Shortcut helper function using dbGetQuery() (which sends, fetches, and clears automatically!)
+q <- function(...) dbGetQuery(con, ...)
+print(q)
 dbListTables(con)
 ```
 
 ---
 
 # Reading Database Tables into R Data Frames
-## Querying `weather`, `airports`, and `airlines` with `dbGetQuery()`
+## Querying `weather`, `airports`, and `airlines` with Helper `q()`
 
-We can use **`dbGetQuery(con, "<SQL>")`** to execute a `SELECT` query against our SQLite connection and immediately return the result as an R `data.frame`:
+We can use our helper function **`q("...")`** (wrapping `dbGetQuery(con, ...)`) to execute a `SELECT` query against our SQLite connection and immediately return the result as an R `data.frame`:
 
 ```r
-# Read tables from SQLite into R data frames (previewing the first 5 rows of each)
-weather_df <- dbGetQuery(con, "SELECT * FROM weather LIMIT 5")
+# Read tables from SQLite into R data frames using q() (previewing the first 5 rows of each)
+weather_df <- q("SELECT * FROM weather LIMIT 5")
 print(weather_df)
 
-airports_df <- dbGetQuery(con, "SELECT * FROM airports LIMIT 5")
+airports_df <- q("SELECT * FROM airports LIMIT 5")
 print(airports_df)
 
-airlines_df <- dbGetQuery(con, "SELECT * FROM airlines LIMIT 5")
+airlines_df <- q("SELECT * FROM airlines LIMIT 5")
 print(airlines_df)
 ```
 
@@ -64,27 +67,7 @@ print(airlines_df)
 
 Reference: [R4DS Relational Data Solutions](https://jrnold.github.io/r4ds-exercise-solutions/relational-data.html)
 
-```
-                  ┌─────────────────┐
-                  │    airlines     │ (carrier -> name)
-                  └─────────────────┘
-                           │ (carrier)
-                           ▼
- ┌─────────────┐  (tailnum) ┌─────────────┐ (origin, dest) ┌──────────────┐
- │   planes    │───────────►│   flights   │◄───────────────│   airports   │
- └─────────────┘            └─────────────┘                └──────────────┘
-                                   │
-                                   │ (origin, year, month, day, hour)
-                                   ▼
-                            ┌─────────────┐
-                            │   weather   │
-                            └─────────────┘
-```
-
-* **`flights` $\leftrightarrow$ `airlines`** joins on `carrier` (2-letter airline code).
-* **`flights` $\leftrightarrow$ `airports`** joins on `origin = faa` or `dest = faa` (3-letter airport code).
-* **`flights` $\leftrightarrow$ `planes`** joins on `tailnum` (aircraft tail number).
-* **`flights` $\leftrightarrow$ `weather`** joins on `origin`, `year`, `month`, `day`, and `hour`.
+<img src='images/relational-nycflights.png' width=500px />
 
 ---
 
@@ -147,7 +130,7 @@ A naive approach builds the SQL string directly using `sprintf()` or `paste0()`:
 num_flights_in_month_naive <- function(month) {
   query <- sprintf("SELECT COUNT(*) FROM flights WHERE month = %d", month)
   print(query)
-  dbGetQuery(con, query)[[1]]
+  q(query)[[1]]
 }
 
 num_flights_in_month_naive(1)
@@ -166,7 +149,7 @@ Instead of pasting variables into the SQL string, we use the special **`?` place
 num_flights_in_month <- function(month) {
   query <- "SELECT COUNT(*) FROM flights WHERE month = ?"
   print(query)
-  dbGetQuery(con, query, params = list(month))[[1]]
+  q(query, params = list(month))[[1]]
 }
 
 # Count flights in February (month = 2)
@@ -185,7 +168,7 @@ You can include as many `?` placeholders as needed in a query. The values in `pa
 ```r
 num_flights_on_day <- function(month, day) {
   query <- "SELECT COUNT(*) FROM flights WHERE month = ? AND day = ?"
-  dbGetQuery(con, query, params = list(month, day))[[1]]
+  q(query, params = list(month, day))[[1]]
 }
 
 # How many flights departed on February 1st (month = 2, day = 1)?
@@ -216,9 +199,9 @@ dbExecute(scon, "
 
 dbExecute(scon, "
   INSERT INTO users (username, age, password) VALUES
-    ('John',   40, 'beeri$g00d'),
-    ('Jane',   41, 'wat3rp0l0'),
-    ('Julian', 20, 'il0vecr0ut0n3')
+    ('John Doe',   40, 'p@ssw0rd123'),
+    ('Jane Doe',   35, 'c0ff33_Mug88'),
+    ('Alex Smith', 28, 'd@t@Sc13nc3!')
 ")
 
 df <- dbGetQuery(scon, "SELECT * FROM users")
@@ -241,7 +224,7 @@ user_info <- function(username) {
 }
 
 # 1. Normal usage works as expected:
-print(user_info("John"))
+print(user_info("John Doe"))
 
 # 2. Malicious input — SQL INJECTION ATTACK!
 print(user_info("xxx' OR 'a'='a"))
@@ -286,7 +269,7 @@ safe_user_info <- function(username) {
 }
 
 # 1. Valid user lookup still works:
-print(safe_user_info("John"))
+print(safe_user_info("John Doe"))
 
 # 2. Injection attempt safely returns 0 rows!
 print(safe_user_info("abc' OR 'a'='a"))
@@ -303,7 +286,7 @@ We now use SQL queries on our `con` database (`flights`, `weather`, `airports`, 
 * **Strategy:** Aggregate `flights` by the `origin` column using `GROUP BY origin`, and count the number of rows in each group with `COUNT(*)`:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT origin, COUNT(*) AS total_flights
   FROM flights
   GROUP BY origin
@@ -321,7 +304,7 @@ dbGetQuery(con, "
 * **Strategy:** Aggregate the `weather` table by `month`, compute `AVG(temp)`, and sort from coldest to warmest using `ORDER BY AVG(temp)` (ascending is the default in SQL):
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT month, AVG(temp) AS avg_temp
   FROM weather
   GROUP BY month
@@ -342,7 +325,7 @@ This question is a bit trickier! We solve it in **three progressive steps**.
 * **Step 1:** First, count the number of flights for each combination of `origin` and `carrier`, ordered by `origin` and `COUNT(*) DESC`:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT origin, carrier, COUNT(*) AS n
   FROM flights
   GROUP BY origin, carrier
@@ -358,7 +341,7 @@ dbGetQuery(con, "
 * **Step 2:** Next, we wrap our Step 1 aggregation inside a **subquery** `FROM (SELECT COUNT(*) AS n, origin, carrier FROM flights GROUP BY origin, carrier)` and apply the `RANK() OVER (...)` window function partitioned by `origin`:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT
     RANK() OVER (
       PARTITION BY origin
@@ -383,7 +366,7 @@ dbGetQuery(con, "
 * **Step 3:** Finally, to keep **only** the #1 most popular carrier (`r = 1`) at each airport, we wrap our Step 2 query in one more outer `SELECT * FROM (...) WHERE r = 1`:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT * FROM (
     SELECT
       RANK() OVER (
@@ -421,10 +404,10 @@ To group flights by week of the year, we can use SQLite's built-in date/time for
 
 ```r
 # 1. Get the current week number of the year using strftime('%W', 'now')
-dbGetQuery(con, "SELECT strftime('%W', 'now') AS current_week")
+q("SELECT strftime('%W', 'now') AS current_week")
 
 # 2. Get the current UTC timestamp using datetime()
-dbGetQuery(con, "SELECT datetime() AS current_utc_datetime")
+q("SELECT datetime() AS current_utc_datetime")
 ```
 
 ---
@@ -439,13 +422,13 @@ How is the `time_hour` column stored inside SQLite when written from R? Let's in
 
 ```r
 # 1. Inspect the raw numeric value of time_hour in SQLite
-dbGetQuery(con, "SELECT time_hour FROM flights LIMIT 1")
+q("SELECT time_hour FROM flights LIMIT 1")
 
 # 2. Convert Unix timestamp 1357034400 into a human-readable date/time string
-dbGetQuery(con, "SELECT datetime(1357034400, 'unixepoch') AS readable_time")
+q("SELECT datetime(1357034400, 'unixepoch') AS readable_time")
 
 # 3. Extract the week of the year ('%W') for the first 5 flights
-dbGetQuery(con, "
+q("
   SELECT year, month, day, strftime('%W', time_hour, 'unixepoch') AS week
   FROM flights
   LIMIT 5
@@ -460,7 +443,7 @@ dbGetQuery(con, "
 Now we can aggregate all flights by `week`, sort in descending order of flight count (`ORDER BY n DESC`), and take the top 5 (`LIMIT 5`):
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT
     COUNT(*) AS n,
     strftime('%W', time_hour, 'unixepoch') AS week
@@ -480,7 +463,7 @@ dbGetQuery(con, "
 * **Strategy:** Group `flights` by `year, month, day`, compute `ROUND(AVG(dep_delay), 2) AS avg_delay`, sort descending (`ORDER BY avg_delay DESC`), and `LIMIT 10`:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT year, month, day, ROUND(AVG(dep_delay), 2) AS avg_delay
   FROM flights
   GROUP BY year, month, day
@@ -500,7 +483,7 @@ dbGetQuery(con, "
 * **Strategy:** Use the same `GROUP BY year, month, day` query, but sort in **ascending** order (`ORDER BY avg_delay`) so the lowest (negative = early!) average delays appear first:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT year, month, day, ROUND(AVG(dep_delay), 2) AS avg_delay
   FROM flights
   GROUP BY year, month, day
@@ -520,7 +503,7 @@ dbGetQuery(con, "
 To display the full airline `name` alongside the two-letter `carrier` code, we **`JOIN`** `flights` with `airlines` on `flights.carrier = airlines.carrier` and group by `airlines.name`:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT flights.carrier, name, ROUND(AVG(dep_delay), 2) AS avg_delay
   FROM flights
   JOIN airlines ON flights.carrier = airlines.carrier
@@ -540,7 +523,7 @@ dbGetQuery(con, "
 Because `avg_delay` is an **aggregate result** computed per airline (`AVG(dep_delay)`), we filter after `GROUP BY` using **`HAVING avg_delay BETWEEN 5 AND 10`**:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT airlines.carrier, name, ROUND(AVG(dep_delay), 2) AS avg_delay
   FROM flights
   JOIN airlines ON airlines.carrier = flights.carrier
@@ -560,7 +543,7 @@ dbGetQuery(con, "
 * Then, the outer query filters out missing tail numbers (`WHERE tailnum IS NOT NULL AND tailnum != 'None'`), groups by `tailnum`, and counts the days:
 
 ```r
-dbGetQuery(con, "
+q("
   SELECT tailnum, COUNT(*) AS days_flown
   FROM (
     SELECT DISTINCT year, month, day, tailnum
@@ -587,10 +570,10 @@ Let's compare `WHERE dep_time IS NULL` (correct) against `WHERE dep_time = NULL`
 
 ```r
 # 1. Correct way to check for missing values in SQL: IS NULL
-dbGetQuery(con, "SELECT COUNT(*) AS cancelled_flights FROM flights WHERE dep_time IS NULL")
+q("SELECT COUNT(*) AS cancelled_flights FROM flights WHERE dep_time IS NULL")
 
 # 2. Common mistake: '= NULL' ALWAYS evaluates to UNKNOWN and returns 0!
-dbGetQuery(con, "SELECT COUNT(*) AS wrong_null_check FROM flights WHERE dep_time = NULL")
+q("SELECT COUNT(*) AS wrong_null_check FROM flights WHERE dep_time = NULL")
 ```
 
 * **Result:** **`8,255` flights** were cancelled (`dep_time IS NULL`), whereas `dep_time = NULL` erroneously returns `0`!
@@ -608,10 +591,10 @@ First, let's see an example of an airport with a one-word name (`'Packwood'`), a
 
 ```r
 # 1. Example of an airport with a one-word name
-dbGetQuery(con, "SELECT faa, name FROM airports WHERE name = 'Packwood'")
+q("SELECT faa, name FROM airports WHERE name = 'Packwood'")
 
 # 2. Find all airports whose name contains no spaces
-dbGetQuery(con, "SELECT faa, name FROM airports WHERE name NOT LIKE '% %'")
+q("SELECT faa, name FROM airports WHERE name NOT LIKE '% %'")
 ```
 
 ---
@@ -623,7 +606,7 @@ Now we count how many rows in `flights` have a destination (`flights.dest`) matc
 
 ```r
 # Method 1: INNER JOIN against a filtered subquery of one-word airports
-dbGetQuery(con, "
+q("
   SELECT COUNT(*) AS flights_to_one_word_airports
   FROM flights
   INNER JOIN (
@@ -633,7 +616,7 @@ dbGetQuery(con, "
 ")
 
 # Method 2: Direct INNER JOIN with a WHERE filter
-dbGetQuery(con, "
+q("
   SELECT COUNT(*) AS flights_to_one_word_airports
   FROM flights
   INNER JOIN airports
@@ -647,15 +630,15 @@ dbGetQuery(con, "
 # Practice Exercise 1: Busiest Origin Airport for JetBlue (`B6`)
 ## Combining `WHERE`, `GROUP BY`, and `ORDER BY`
 
-**Prompt:** Write a SQL query using `dbGetQuery(con, "...")` to find the number of flights operated by **JetBlue (`carrier = 'B6'`)** from each NYC `origin` airport, ordered from highest count to lowest.
+**Prompt:** Write a SQL query using `q("...")` to find the number of flights operated by **JetBlue (`carrier = 'B6'`)** from each NYC `origin` airport, ordered from highest count to lowest.
 
 ```r
 # Replace .... with your SQL query
-dbGetQuery(con, "....")
+q("....")
 ```
 
 ```r block=answer
-dbGetQuery(con, "
+q("
   SELECT origin, COUNT(*) AS n
   FROM flights
   WHERE carrier = 'B6'
@@ -669,13 +652,13 @@ dbGetQuery(con, "
 # Practice Exercise 2: Parameterized Tail Number Lookup
 ## Using `?` Placeholders Safely with `params = list(...)`
 
-**Prompt:** Complete the function `plane_flight_count(tail_id)` below so that it uses a **`?` placeholder** and `params = list(tail_id)` to return the total number of flights (`COUNT(*)`) flown by a given `tailnum` in `flights`. Test it on `"N328AA"`.
+**Prompt:** Complete the function `plane_flight_count(tail_id)` below so that it uses a **`?` placeholder** and `params = list(tail_id)` with `q()` to return the total number of flights (`COUNT(*)`) flown by a given `tailnum` in `flights`. Test it on `"N328AA"`.
 
 ```r
 plane_flight_count <- function(tail_id) {
   # Write a parameterized query using ? and params = list(tail_id)
   query <- "...."
-  dbGetQuery(con, query, params = list(tail_id))
+  q(query, params = list(tail_id))
 }
 
 plane_flight_count("N328AA")
@@ -684,7 +667,7 @@ plane_flight_count("N328AA")
 ```r block=answer
 plane_flight_count <- function(tail_id) {
   query <- "SELECT COUNT(*) AS total_flights FROM flights WHERE tailnum = ?"
-  dbGetQuery(con, query, params = list(tail_id))
+  q(query, params = list(tail_id))
 }
 
 plane_flight_count("N328AA")
@@ -705,10 +688,11 @@ dbDisconnect(scon)
 | :--- | :--- | :--- |
 | **Connect In-Memory DB** | `con <- dbConnect(RSQLite::SQLite(), ":memory:")` | Create a fast temporary SQLite database in RAM |
 | **Write R Table to SQL** | `dbWriteTable(con, "flights", flights, overwrite = TRUE)` | Populate SQLite tables from `nycflights13` data frames |
-| **Query to Data Frame** | `dbGetQuery(con, "SELECT ...")` | Execute a `SELECT` query and return all results at once |
+| **Query Helper Function** | `q <- function(...) dbGetQuery(con, ...)` | Shortcut wrapper to execute queries and return data frames |
+| **Query to Data Frame** | `q("SELECT ...")` / `dbGetQuery(con, ...)` | Execute a `SELECT` query and return all results at once |
 | **Send Query Handle** | `res <- dbSendQuery(con, "SELECT ...")` | Send a query for step-by-step cursor fetching |
 | **Fetch 1 / Fetch All** | `dbFetch(res, n = 1)` / `dbFetch(res, n = -1)` | Retrieve the next `n` rows (or all remaining rows) |
 | **Column Metadata** | `dbColumnInfo(res)` | Inspect result column names and data types |
 | **Execute DDL / DML** | `dbExecute(scon, "CREATE / INSERT ...")` | Run statements that modify schema or rows |
-| **Parameterized Query** | `dbGetQuery(con, q, params = list(x))` | Safely bind user parameters and prevent SQL injection |
+| **Parameterized Query** | `q(sql, params = list(x))` | Safely bind user parameters and prevent SQL injection |
 

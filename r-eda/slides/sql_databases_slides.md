@@ -1,13 +1,12 @@
 # Statistical Tests & SQL Databases
-## Hypothesis Testing, Relational Databases, and Querying Data in R
 
 ### Lecture Agenda
-1. **Part 1: Statistical Tests in R**
+1. Statistical Tests in R**
    * Hypothesis testing, $H_0$, $H_1$, and interpreting the `p-value`
    * Comparing two group means with the **T-test** (`t.test()`)
    * Testing categorical independence with the **Chi-squared Test** (`chisq.test()`)
    * Choosing the right test: **ANOVA** (`aov()`) and **Correlation** (`cor.test()`)
-2. **Part 2: SQL (Structured Query Language) & Databases**
+2. SQL (Structured Query Language) & Databases**
    * Connecting R to databases with `DBI`, `RSQLite`, and `dbplyr`
    * Managing tables (`dbWriteTable`, `dbRemoveTable`, `dbListFields`, `dbReadTable`)
    * Core SQL clauses: `SELECT`, `FROM`, `LIMIT`, `WHERE`, `IS NOT NULL`, `GROUP BY`, `HAVING`, `DISTINCT`
@@ -15,10 +14,10 @@
 
 ---
 
-# Part 1: Statistical Tests
+# Statistical Tests
 ## From Exploratory Visuals to Formal Inference
 
-In Exploratory Data Analysis (EDA), visualizations often reveal interesting differences or patterns across groups. **Statistical tests** allow us to formally evaluate whether those observed patterns reflect a true underlying effect or could simply be due to random chance.
+Visualizations uncover patterns; statistical tests prove if they are real or random chance.
 
 * **Null Hypothesis ($H_0$):** The default assumption that there is **no effect**, **no difference**, or **no association** between variables.
 * **Alternative Hypothesis ($H_1$ or $H_a$):** The claim that there **is** a statistically meaningful difference or association.
@@ -29,12 +28,13 @@ In Exploratory Data Analysis (EDA), visualizations often reveal interesting diff
 ---
 
 # 1. The Two-Sample T-test (`t.test()`)
-## Comparing Means of a Continuous Variable Across Two Groups
 
-### When to Use It
+*Comparing Means of a Continuous Variable Across Two Groups*
+
+## When to Use It
 Use a **T-test** when you want to determine whether there is a statistically significant difference between the **means of a continuous variable** across **two groups**.
 
-### Case Study: Diamond Prices by Cut
+## Case Study: Diamond Prices by Cut
 Suppose we want to test whether the mean price of `'Ideal'` cut diamonds is significantly different from the mean price of `'Premium'` cut diamonds in `ggplot2::diamonds`:
 
 * **$H_0$ (Null Hypothesis):** $\mu_{\text{Ideal}} = \mu_{\text{Premium}}$ (The true mean price is equal across both cuts).
@@ -66,17 +66,18 @@ t.test(ideal_diamonds$price, premium_diamonds$price)
 ---
 
 # 2. The Chi-squared Test (`chisq.test()`)
-## Testing Association Between Two Categorical Variables
 
-### When to Use It
+*Testing Association Between Two Categorical Variables*
+
+## When to Use It
 A **Chi-squared test of independence** ($\chi^2$) evaluates whether there is a significant association between **two categorical variables**.
 
-### How Does It Work?
+## How Does It Work?
 It works by comparing two sets of counts in a contingency table:
 1. **Observed Frequencies ($O$):** The actual counts we observe in our collected sample data.
 2. **Expected Frequencies ($E$):** The counts we would *expect* to see in each category combination if the two variables were **completely independent** (i.e., if $H_0$ were true).
 
-### Survey Example ($N = 200$ People)
+## Survey Example ($N = 200$ People)
 Suppose we survey **200 people** on two categorical questions:
 * **Favorite Movie Genre:** `Comedy` or `Sci-Fi`
 * **Favorite Ice Cream Flavor:** `Chocolate` or `Vanilla`
@@ -92,13 +93,13 @@ Suppose we tally the 200 survey responses and observe the following actual count
 
 | | Prefers Chocolate | Prefers Vanilla | **Row Total** |
 | :--- | :---: | :---: | :---: |
-| **Likes Comedy** | 70 | 30 | **100** |
-| **Likes Sci-Fi** | 20 | 80 | **100** |
+| **Likes Comedy** | 55 | 65 | **120** |
+| **Likes Sci-Fi** | 35 | 45 | **80** |
 | **Column Total** | **90** | **110** | **200 (Grand Total)** |
 
 ### Key Terminology
-* **Cell:** Each individual box in the interior of the table representing a specific combination of categories (for example, the **"Likes Comedy & Prefers Chocolate"** box with a count of `70`).
-* **Marginal Totals:** The row totals (`100`, `100`) and column totals (`90`, `110`) along the edges of the table.
+* **Cell:** Each individual box in the interior of the table representing a specific combination of categories (for example, the **"Likes Comedy & Prefers Chocolate"** box with a count of `55`).
+* **Marginal Totals:** The row totals (`120`, `80`) and column totals (`90`, `110`) along the edges of the table.
 * **Grand Total ($N$):** The total sample size across all cells (`200`).
 
 ---
@@ -112,12 +113,12 @@ $$P(A \text{ and } B) = P(A) \times P(B)$$
 Let's apply this rule to the **"Likes Comedy" and "Prefers Chocolate"** cell:
 
 1. **Step 1: Find the individual marginal probabilities from the totals**
-   * $P(\text{Likes Comedy}) = \frac{\text{Total who like Comedy}}{\text{Grand Total}} = \frac{100}{200} = 0.50$
+   * $P(\text{Likes Comedy}) = \frac{\text{Total who like Comedy}}{\text{Grand Total}} = \frac{120}{200} = 0.60$
    * $P(\text{Prefers Chocolate}) = \frac{\text{Total who prefer Chocolate}}{\text{Grand Total}} = \frac{90}{200} = 0.45$
 2. **Step 2: Calculate the combined probability assuming independence**
-   * $P(\text{Comedy and Chocolate}) = 0.50 \times 0.45 = 0.225$
+   * $P(\text{Comedy and Chocolate}) = 0.60 \times 0.45 = 0.27$
 3. **Step 3: Convert the probability back into an Expected Count**
-   * $\text{Expected Count} = 0.225 \times 200 = \mathbf{45}$
+   * $\text{Expected Count} = 0.27 \times 200 = \mathbf{54}$
 
 $$\text{Expected Count} = \left(\frac{\text{Row Total}}{\text{Grand Total}}\right) \times \left(\frac{\text{Column Total}}{\text{Grand Total}}\right) \times \text{Grand Total} = \frac{\text{Row Total} \times \text{Column Total}}{\text{Grand Total}}$$
 
@@ -128,17 +129,17 @@ $$\text{Expected Count} = \left(\frac{\text{Row Total}}{\text{Grand Total}}\righ
 
 Using the formula $\text{Expected Count} = \frac{\text{Row Total} \times \text{Column Total}}{\text{Grand Total}}$, we compute all 4 cells:
 
-* **Comedy & Chocolate:** $(100 \times 90) / 200 = \mathbf{45}$
-* **Comedy & Vanilla:** $(100 \times 110) / 200 = \mathbf{55}$
-* **Sci-Fi & Chocolate:** $(100 \times 90) / 200 = \mathbf{45}$
-* **Sci-Fi & Vanilla:** $(100 \times 110) / 200 = \mathbf{55}$
+* **Comedy & Chocolate:** $(120 \times 90) / 200 = \mathbf{54}$
+* **Comedy & Vanilla:** $(120 \times 110) / 200 = \mathbf{66}$
+* **Sci-Fi & Chocolate:** $(80 \times 90) / 200 = \mathbf{36}$
+* **Sci-Fi & Vanilla:** $(80 \times 110) / 200 = \mathbf{44}$
 
 ### Expected Frequencies Table (Under $H_0$ Independence)
 
 | | Prefers Chocolate | Prefers Vanilla | **Row Total** |
 | :--- | :---: | :---: | :---: |
-| **Likes Comedy** | 45 *(Observed: 70)* | 55 *(Observed: 30)* | **100** |
-| **Likes Sci-Fi** | 45 *(Observed: 20)* | 55 *(Observed: 80)* | **100** |
+| **Likes Comedy** | 54 *(Observed: 55)* | 66 *(Observed: 65)* | **120** |
+| **Likes Sci-Fi** | 36 *(Observed: 35)* | 44 *(Observed: 45)* | **80** |
 | **Column Total** | **90** | **110** | **200** |
 
 ---
@@ -149,16 +150,21 @@ Using the formula $\text{Expected Count} = \frac{\text{Row Total} \times \text{C
 The Chi-squared statistic measures the overall discrepancy between Observed ($O$) and Expected ($E$) counts across all cells:
 $$\chi^2 = \sum \frac{(O - E)^2}{E}$$
 
-If the observed counts (`70, 30, 20, 80`) are far from the expected counts (`45, 55, 45, 55`), $\chi^2$ will be **large** and the `p-value` will be **small**:
+Because the observed counts (`55, 65, 35, 45`) are nearly identical to the expected counts (`54, 66, 36, 44`), $\chi^2$ is **very small** ($\chi^2 \approx 0.084$) and the `p-value` is **large** ($p \approx 0.77$):
 
 ```r
-# 1. Movie vs. Ice Cream Survey Example
-survey_table <- matrix(c(70, 30, 20, 80), nrow = 2, byrow = TRUE,
+# 1. Movie vs. Ice Cream Survey Example (No preference / independent)
+survey_table <- matrix(c(55, 65, 35, 45), nrow = 2, byrow = TRUE,
                        dimnames = list(Genre = c("Comedy", "Sci-Fi"),
                                        Flavor = c("Chocolate", "Vanilla")))
 chisq.test(survey_table, correct = FALSE)
+# Output: X-squared = 0.084175, df = 1, p-value = 0.7717 -> Fail to reject H0!
+
+```
 
 # 2. Diamonds Example: Are 'cut' and 'color' independent?
+
+```r
 chisq.test(table(diamonds$cut, diamonds$color))
 ```
 
@@ -199,6 +205,35 @@ summary(anova_model)
 
 ---
 
+# Why Not Multiple T-tests? (Type I Error Inflation)
+## The Multiple Comparisons Problem & Family-Wise Error Rate (FWER)
+
+* **Type I Error ($\alpha = 0.05$):** A **false positive** (detecting a significant difference when none actually exists).
+* **The Multiplicity Problem:** Comparing $k = 5$ diamond cuts requires $m = \binom{k}{2} = \frac{k(k-1)}{2} = \binom{5}{2} = \mathbf{10}$ pairwise t-tests.
+* **Error Rate Compounding Formula:** If you run $m$ independent tests, each at significance level $\alpha$:
+  $$\text{FWER} = 1 - (1 - \alpha)^m = 1 - (1 - 0.05)^{10} = 1 - (0.95)^{10} \approx \mathbf{40.1\%}$$
+* **ANOVA's Solution:** Tests all group means simultaneously in a **single omnibus test**, controlling the family-wise nominal Type I error rate at the chosen significance level (e.g., $\alpha = 0.05$, assuming standard assumptions like normality and equal variances are met).
+
+---
+
+# How ANOVA Works: The $F$-Statistic Formula
+## Comparing Variation *Between* Groups vs. *Within* Groups
+
+Instead of running $m$ individual pairwise tests, ANOVA calculates a single test statistic called the **$F$-ratio**:
+
+$$F = \frac{\text{MS}_{\text{between}}}{\text{MS}_{\text{within}}} = \frac{\text{SS}_{\text{between}} / (k - 1)}{\text{SS}_{\text{within}} / (N - k)}$$
+
+* **$\text{SS}_{\text{between}}$ (Sum of Squares Between Groups):** Measures how far group sample means deviate from the grand mean:
+  $$\text{SS}_{\text{between}} = \sum_{j=1}^k n_j (\bar{y}_j - \bar{y}_{\text{grand}})^2, \quad \text{df}_{\text{between}} = k - 1$$
+* **$\text{SS}_{\text{within}}$ (Sum of Squares Within Groups / Residuals):** Measures the random scatter of individual data points around their respective group mean:
+  $$\text{SS}_{\text{within}} = \sum_{j=1}^k \sum_{i=1}^{n_j} (y_{ij} - \bar{y}_j)^2, \quad \text{df}_{\text{within}} = N - k$$
+
+### Intuition & Assumptions
+* **Intuition:** Under $H_0$ ($\mu_1 = \dots = \mu_k$), between-group variation is purely random, so $F \approx 1$. If true group means differ, $\text{MS}_{\text{between}} \gg \text{MS}_{\text{within}}$, driving $F \gg 1$ and producing a tiny $p$-value.
+* **Required Assumptions:** For the nominal Type I error rate ($\alpha = 0.05$) to hold true, ANOVA assumes: (1) **independent observations**, (2) **normality** of residuals, and (3) **homoscedasticity** (equal group variances).
+
+---
+
 # 4. Correlation Test (`cor.test()`)
 ## Testing Linear Association Between Two Continuous Variables
 
@@ -223,7 +258,7 @@ cor.test(diamonds$carat, diamonds$price)
 
 ---
 
-# Part 2: SQL — Structured Query Language
+# SQL — Structured Query Language
 ## Why Learn SQL Alongside R?
 
 * **The Industry Standard:** **SQL (Structured Query Language)** is the universal language used to interact with Relational Database Management Systems (RDBMS) such as PostgreSQL, MySQL, SQLite, Oracle, BigQuery, and Snowflake.
@@ -270,12 +305,12 @@ dbListTables(con)
 
 ---
 
-# `dbplyr` and Writing Tables (`dbWriteTable`)
-## Populating Our Database with R Data Frames
+# Populating Our Database with R Data Frames
 
-* **What is `dbplyr`?** `dbplyr` is a `dplyr` backend for databases. It allows you to write standard `dplyr` pipelines (`filter()`, `select()`, `group_by()`, `summarize()`) and automatically translates them into SQL queries behind the scenes!
-* **Direct `DBI` Operations:** In this lecture, we will also interact with the database directly using `DBI` functions and raw SQL strings so you master SQL syntax directly.
-* Let's copy `ggplot2::mpg` into our SQLite database as a table named `"mpg"` using `dbWriteTable()`:
+
+In this lecture, we will also interact with the database directly using `DBI` functions and raw SQL strings so you master SQL syntax directly.
+
+Let's copy `ggplot2::mpg` into our SQLite database as a table named `"mpg"` using `dbWriteTable()`:
 
 ```r
 # Write the mpg dataframe into our SQLite database as a table named "mpg"
@@ -429,7 +464,7 @@ In SQL, missing values are called **`NULL`**, and we test for them using **`IS N
 * **SQL:** `SELECT * FROM flights WHERE dep_delay IS NOT NULL`
 * **R (`dplyr`):** `filter(flights, !is.na(dep_delay))`
 
-> **Common Pitfall:** In SQL, writing `WHERE dep_delay = NULL` or `WHERE dep_delay != NULL` **never works** because `NULL` represents an unknown value. Always write `IS NULL` or `IS NOT NULL`.
+> **ANSI SQL Standard & Best Practice:** In standard SQL, writing `WHERE dep_delay = NULL` or `WHERE dep_delay != NULL` is non-standard and fails across most production RDBMS engines (because comparing to `NULL` yields `UNKNOWN`). Always use **`IS NULL`** or **`IS NOT NULL`** to ensure your queries are portable and standards-compliant.
 
 ```r
 # Query non-missing departure delays using SQL (limiting to 10 rows for display)
@@ -492,15 +527,15 @@ q("SELECT flights.year AS flight_yr, planes.tailnum, *
 
 Unlike `GROUP BY` (which collapses each group into a single summary row), SQL **window functions** compute a rank or aggregate for every row within a partition:
 
-```sql
+<pre>
 SELECT RANK() OVER (
   PARTITION BY <group1>, <group2>, ..., <groupn>
   ORDER BY <expr1>, <expr2>, ... [ASC|DESC]
 ) FROM <table>
-```
+</pre>
 
 * **`PARTITION BY month, day`:** Divides the flights into daily groups (just like `group_by(month, day)`).
-* **`ORDER BY dep_delay DESC`:** Ranks the largest departure delay as `r = 1` within each day.
+* **`ORDER BY dep_delay DESC`:** Ranks the largest departure delay as rank `1` within each day.
 
 ```r
 # 1. SQL Window Function: Rank flights by longest departure delay each day
@@ -508,40 +543,42 @@ q("SELECT month, day, dep_delay,
    RANK() OVER (
      PARTITION BY month, day
      ORDER BY dep_delay DESC
-   ) r
+   ) AS rank
    FROM flights
    LIMIT 15")
 
 # 2. Equivalent R (dplyr) pipeline
 flights |>
   group_by(month, day) |>
-  mutate(r = min_rank(-dep_delay)) |>
-  select(month, day, dep_delay, r) |>
-  arrange(month, day, r) |>
+  mutate(rank = min_rank(-dep_delay)) |>
+  select(month, day, dep_delay, rank) |>
+  arrange(month, day, rank) |>
   head(15)
 ```
 
 ---
 
 # Subqueries: Filtering on Window Functions
-## Why `WHERE r = 1` Fails Directly — And How Subqueries Solve It
+## Filtering Rows by Their Window Rank
 
-Suppose we want **only the single most delayed flight (`r = 1`) for each day**. What happens if we try to add `WHERE r = 1` directly to our `RANK() OVER (...)` query?
+Suppose we want **only the single most delayed flight (`rank = 1`) for each day**:
 
-* **Why It Fails:** In SQL's logical order of execution, the `WHERE` clause is evaluated **before** `SELECT` window functions (`RANK() OVER (...)`) are computed! Therefore, the column alias `r` does not exist yet when `WHERE` runs (`Error: no such column: r`).
-* **The Solution — A Subquery:** We wrap the inner ranking query in parentheses inside `FROM (...)` and apply `WHERE r = 1` in the **outer query**!
+* **Why Direct Filtering Fails:** In SQL, you **cannot** filter window functions directly in a `WHERE` clause because `WHERE` filters rows *before* window functions are calculated.
+* **The Solution — A Subquery:**
+  1. Calculate the rank in an **inner query** wrapped in parentheses inside `FROM (...)`.
+  2. Filter on `WHERE rank = 1` in the **outer query**.
 
 ```r
-# Wrapping the window ranking query inside a subquery allows outer WHERE filtering!
-q("SELECT month, day, dep_delay, r FROM (
+# Wrapping the ranking query inside a subquery allows outer WHERE filtering
+q("SELECT month, day, dep_delay, rank FROM (
      SELECT month, day, dep_delay,
        RANK() OVER (
          PARTITION BY month, day
          ORDER BY dep_delay DESC
-       ) r
+       ) AS rank
      FROM flights
    )
-   WHERE r = 1
+   WHERE rank = 1
    LIMIT 15")
 ```
 
@@ -552,7 +589,7 @@ q("SELECT month, day, dep_delay, r FROM (
 
 **Prompt:** Write a SQL query using `q("...")` on the `mpg` table to find the **maximum highway miles per gallon (`MAX(hwy)`) for each `manufacturer`**.
 
-* *Hint:* Select `manufacturer` and `MAX(hwy)` from `mpg`, and group by `manufacturer`.
+
 
 ```r
 # replace .... with your query
@@ -570,7 +607,7 @@ q("SELECT manufacturer, MAX(hwy) FROM mpg GROUP BY manufacturer")
 
 **Prompt:** Write a SQL query using `q("...")` to find **how many 4-cylinder (`cyl = 4`) rows/models** are present in the `mpg` database table.
 
-* *Hint:* Use `SELECT COUNT(*) FROM mpg` combined with a `WHERE` filter on `cyl`.
+
 
 ```r
 # replace .... with your query
@@ -588,7 +625,7 @@ q("SELECT COUNT(*) FROM mpg WHERE cyl = 4")
 
 **Prompt:** Extend the grouping concept from Exercise 1 to retrieve the **minimum `hwy` value (`MIN(hwy)`) grouped by both `manufacturer` and `model`** in the `mpg` table.
 
-* *Hint:* Include both `manufacturer` and `model` in your `SELECT` clause and your `GROUP BY` clause.
+
 
 ```r
 # replace .... with your query
@@ -628,10 +665,6 @@ q("SELECT dest, COUNT(*) AS total
 
 **Prompt:** Write a SQL query on the `mpg` table to get all `manufacturer`s that have a **total of 4 or more `'compact'` cars** (`class = 'compact'`).
 
-* *Hint:*
-  1. Filter to `WHERE class = 'compact'` first.
-  2. Group by `manufacturer` (`GROUP BY manufacturer`).
-  3. Filter the grouped counts using `HAVING COUNT(*) >= 4`.
 
 ```r
 # replace .... with your query

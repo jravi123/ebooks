@@ -162,7 +162,7 @@ chisq.test(survey_table, correct = FALSE)
 
 ```
 
-# 2. Diamonds Example: Are 'cut' and 'color' independent?
+###  2. Diamonds Example: Are 'cut' and 'color' independent?
 
 ```r
 chisq.test(table(diamonds$cut, diamonds$color))
@@ -229,8 +229,15 @@ $$F = \frac{\text{MS}_{\text{between}}}{\text{MS}_{\text{within}}} = \frac{\text
   $$\text{SS}_{\text{within}} = \sum_{j=1}^k \sum_{i=1}^{n_j} (y_{ij} - \bar{y}_j)^2, \quad \text{df}_{\text{within}} = N - k$$
 
 ### Intuition & Assumptions
-* **Intuition:** Under $H_0$ ($\mu_1 = \dots = \mu_k$), between-group variation is purely random, so $F \approx 1$. If true group means differ, $\text{MS}_{\text{between}} \gg \text{MS}_{\text{within}}$, driving $F \gg 1$ and producing a tiny $p$-value.
-* **Required Assumptions:** For the nominal Type I error rate ($\alpha = 0.05$) to hold true, ANOVA assumes: (1) **independent observations**, (2) **normality** of residuals, and (3) **homoscedasticity** (equal group variances).
+* **Intuition:** Under $H_0$ ($\mu_1 = \dots = \mu_k$), between-group variation is purely random, so $F \approx 1$. If true group means differ, $\text{MS}_{\text{between}} \gg \text{MS}_{\text{within}}$, driving $F \gg 1$ and producing a small $p$-value.
+
+* **Required Assumptions:** For the nominal Type I error rate ($\alpha = 0.05$) to hold true, ANOVA assumes: 
+
+(1) **independent observations**
+
+(2) **normality** of residuals 
+
+(3) **homoscedasticity** (equal group variances)
 
 ---
 

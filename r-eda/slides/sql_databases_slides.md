@@ -520,7 +520,7 @@ A **`LEFT JOIN`** keeps all rows from the left table (`flights`) and matches row
 > **Disambiguating Shared Column Names:** Both `flights` and `planes` have a column named `year` (`flights.year` is the flight year `2013`; `planes.year` is the year the aircraft was manufactured). We use `table.column AS alias` to avoid ambiguity!
 
 ```r
-q("SELECT flights.year AS flight_yr, planes.tailnum, *
+q("SELECT flights.year AS flight_yr, planes.tailnum
    FROM flights
    LEFT JOIN planes
    ON flights.tailnum = planes.tailnum

@@ -1,16 +1,11 @@
 # SQL Workbook: Practical Queries in R
-## Result Iterators, Parameterized Queries, SQL Injection, and 10 Questions on `flights`
 
 ### Lecture Agenda
-1. Setting Up `nycflights13` in SQLite & Result Set Iterators**
-   * Creating an in-memory SQLite database from `library(nycflights13)` (`DBI` & `RSQLite`)
-   * The `nycflights13` Entity-Relationship Diagram (ERD)
-   * Result set objects (`dbSendQuery`), metadata (`dbColumnInfo`), and incremental fetching (`dbFetch(res, n = 1)` vs. `dbFetch(res)`)
-2. Parameterized Queries & SQL Injection Defense**
+1. **Parameterized Queries & SQL Injection Defense**
    * Using `?` placeholders and `params = list(...)`
    * How **SQL Injection Attacks** (`' OR 'a'='a`) work and how parameterized queries prevent them
-3. Ten Analytical Questions About `flights`**
-   * Aggregations, nested subqueries, `RANK() OVER (...)`, SQLite `strftime()` & Unix epochs, `JOIN` + `HAVING BETWEEN`, `DISTINCT` subqueries, `IS NULL`, and `NOT LIKE` pattern matching
+2. **Ten Analytical Questions About `flights`**
+   * Multi-table `JOIN`s, aggregations, nested subqueries, `RANK() OVER (...)`, SQLite `strftime()` & Unix epochs, `HAVING BETWEEN`, `DISTINCT` subqueries, `IS NULL`, and `NOT LIKE` pattern matching
 
 ---
 
@@ -136,7 +131,7 @@ num_flights_in_month_naive <- function(month) {
 num_flights_in_month_naive(1)
 ```
 
-> **Wait:** What if a parameter is a string supplied by an untrusted user in a web app or Shiny dashboard? String concatenation opens the door to bugs and **SQL Injection attacks**!
+> What if a parameter is a string supplied by an untrusted user in a web app or Shiny dashboard? String concatenation opens the door to bugs and **SQL Injection attacks**!
 
 ---
 
@@ -237,25 +232,6 @@ print(user_info("xxx' OR 'a'='a"))
 
 ---
 
-# Double Quotes vs. Single Quotes in SQL Injection
-## Switching Quote Styles Does Not Stop Injection!
-
-What if a developer wraps the string in double quotes (`"..."`) instead of single quotes? An attacker can simply inject double quotes (`abc" OR "a" = "a"`) instead:
-
-```r
-# Vulnerable query using double quotes:
-q1 <- paste0('SELECT * FROM users WHERE username = "', 'abc" OR "a" = "a"')
-cat("Query 1:", q1, "\n")
-print(dbGetQuery(scon, q1))
-
-# If the attacker guesses the wrong quote type, it treats it as part of the string:
-q2 <- paste0('SELECT * FROM users WHERE username = "', "abc OR 'a' = 'a'\"")
-cat("\nQuery 2:", q2, "\n")
-print(dbGetQuery(scon, q2))
-```
-
----
-
 # Stopping SQL Injection with `?` Placeholders
 ## `safe_user_info()` Using `params = list(username)`
 
@@ -278,22 +254,29 @@ print(safe_user_info("abc' OR 'a'='a"))
 ---
 
 # Ten Questions About `flights`
-## Question 1: Which NYC Airport Is the Busiest?
+## Question 1: Comparing NYC Origin Airports (`JOIN` + Multi-Metric Aggregation)
 
 We now use SQL queries on our `con` database (`flights`, `weather`, `airports`, `airlines`, `planes`) to answer 10 real-world analytical questions.
 
-### Question 1: Which NYC airport (`origin`) had the most departing flights?
-* **Strategy:** Aggregate `flights` by the `origin` column using `GROUP BY origin`, and count the number of rows in each group with `COUNT(*)`:
+### Question 1: For each NYC origin airport, what is its full airport name, total departing flights, number of distinct destinations served, and average departure delay?
+* **Strategy:** `JOIN` the `flights` and `airports` tables on `flights.origin = airports.faa`, group by `flights.origin` and `airports.name`, and compute `COUNT(*)`, `COUNT(DISTINCT flights.dest)`, and `ROUND(AVG(flights.dep_delay), 2)`:
 
 ```r
 q("
-  SELECT origin, COUNT(*) AS total_flights
+  SELECT
+    flights.origin,
+    airports.name AS airport_name,
+    COUNT(*) AS total_flights,
+    COUNT(DISTINCT flights.dest) AS num_destinations,
+    ROUND(AVG(flights.dep_delay), 2) AS avg_dep_delay
   FROM flights
-  GROUP BY origin
+  JOIN airports ON flights.origin = airports.faa
+  GROUP BY flights.origin, airports.name
+  ORDER BY total_flights DESC
 ")
 ```
 
-* **Result:** **EWR** (Newark Liberty, `120,835` flights) is the busiest, followed closely by **JFK** (`111,279`) and **LGA** (`104,662`).
+* **Result:** **EWR (`Newark Liberty Intl`)** is the busiest (`120,835` flights across `86` destinations, `15.11` min avg delay), followed by **JFK (`John F Kennedy Intl`)** (`111,279` flights, `70` destinations, `12.11` min avg delay) and **LGA (`La Guardia`)** (`104,662` flights, `68` destinations, `10.35` min avg delay).
 
 ---
 
@@ -496,41 +479,49 @@ q("
 
 ---
 
-# Question 7: Which Airlines Have the Most Departure Delay?
-## Joining `flights` and `airlines` (`JOIN ... ON`)
+# Question 7: Average Air Time by Destination Time Zone
+## Joining `flights` and `airports` (`JOIN ... ON`)
 
-### Question 7: Which airlines have the highest average departure delay?
-To display the full airline `name` alongside the two-letter `carrier` code, we **`JOIN`** `flights` with `airlines` on `flights.carrier = airlines.carrier` and group by `airlines.name`:
+### Question 7: What is the total flight count and average air time (in minutes) for each destination time zone (`tzone`)?
+To link each flight's destination code (`flights.dest`) to its destination airport's time zone (`airports.tzone`), we **`JOIN`** `flights` with `airports` on `flights.dest = airports.faa` and group by `airports.tzone`:
 
 ```r
 q("
-  SELECT flights.carrier, name, ROUND(AVG(dep_delay), 2) AS avg_delay
+  SELECT
+    airports.tzone,
+    COUNT(*) AS total_flights,
+    ROUND(AVG(flights.air_time), 2) AS avg_air_time
   FROM flights
-  JOIN airlines ON flights.carrier = airlines.carrier
-  GROUP BY airlines.name
-  ORDER BY avg_delay DESC
+  JOIN airports ON flights.dest = airports.faa
+  GROUP BY airports.tzone
+  ORDER BY avg_air_time DESC
 ")
 ```
 
-* **Result:** **Frontier Airlines (`F9`, `20.22` min)**, **ExpressJet Airlines (`EV`, `19.96` min)**, and **Mesa Airlines (`YV`, `19.00` min)** had the highest average departure delays, whereas **US Airways (`US`, `3.78` min)** and **Hawaiian Airlines (`HA`, `4.90` min)** had the lowest.
+* **Result:** **`Pacific/Honolulu`** has the longest average air time (`617.45` min $\approx 10.3$ hours), followed by **`America/Anchorage`** (`413.13` min) and **`America/Los_Angeles`** (`330.00` min), while East Coast flights in **`America/New_York`** average `94.44` minutes.
 
 ---
 
 # Question 8: Filtering Groups with `HAVING ... BETWEEN`
-## Which Airlines Have Average Departure Delays Between 5 and 10 Minutes?
+## Which Aircraft Engine Types Fly an Average Distance Between 1,000 and 1,500 Miles?
 
-### Question 8: Which airlines have an average departure delay between 5 and 10 minutes?
-Because `avg_delay` is an **aggregate result** computed per airline (`AVG(dep_delay)`), we filter after `GROUP BY` using **`HAVING avg_delay BETWEEN 5 AND 10`**:
+### Question 8: Joining `flights` and `planes`, which aircraft `engine` types have an average flight distance between 1,000 and 1,500 miles?
+Because `avg_distance` is an **aggregate result** computed per engine type (`AVG(flights.distance)`), we filter after `GROUP BY` using **`HAVING avg_distance BETWEEN 1000 AND 1500`**:
 
 ```r
 q("
-  SELECT airlines.carrier, name, ROUND(AVG(dep_delay), 2) AS avg_delay
+  SELECT
+    planes.engine,
+    COUNT(*) AS total_flights,
+    ROUND(AVG(flights.distance), 2) AS avg_distance
   FROM flights
-  JOIN airlines ON airlines.carrier = flights.carrier
-  GROUP BY airlines.name
-  HAVING avg_delay BETWEEN 5 AND 10
+  JOIN planes ON flights.tailnum = planes.tailnum
+  GROUP BY planes.engine
+  HAVING avg_distance BETWEEN 1000 AND 1500
 ")
 ```
+
+* **Result:** **`Turbo-jet`** (`1,497.27` mi), **`Turbo-shaft`** (`1,362.50` mi), **`4 Cycle`** (`1,325.67` mi), and **`Reciprocating`** (`1,090.88` mi) engines fall in this range (whereas `Turbo-prop` averages `1,642.89` mi and `Turbo-fan` averages `994.92` mi).
 
 ---
 
@@ -627,10 +618,10 @@ q("
 
 ---
 
-# Practice Exercise 1: Busiest Origin Airport for JetBlue (`B6`)
-## Combining `WHERE`, `GROUP BY`, and `ORDER BY`
+# Practice Exercise 1: Top Aircraft Manufacturers at JFK
+## Combining `JOIN`, `WHERE`, `GROUP BY`, and `ORDER BY`
 
-**Prompt:** Write a SQL query using `q("...")` to find the number of flights operated by **JetBlue (`carrier = 'B6'`)** from each NYC `origin` airport, ordered from highest count to lowest.
+**Prompt:** Write a SQL query using `q("...")` that joins `flights` and `planes` on `tailnum` to find the **top 5 aircraft `manufacturer`s** flying out of **JFK (`flights.origin = 'JFK'`)**, returning the `manufacturer`, total number of flights (`total_flights`), and average air time rounded to 1 decimal place (`ROUND(AVG(flights.air_time), 1) AS avg_air_time`), ordered from highest flight count to lowest.
 
 ```r
 # Replace .... with your SQL query
@@ -639,11 +630,16 @@ q("....")
 
 ```r block=answer
 q("
-  SELECT origin, COUNT(*) AS n
+  SELECT
+    planes.manufacturer,
+    COUNT(*) AS total_flights,
+    ROUND(AVG(flights.air_time), 1) AS avg_air_time
   FROM flights
-  WHERE carrier = 'B6'
-  GROUP BY origin
-  ORDER BY n DESC
+  JOIN planes ON flights.tailnum = planes.tailnum
+  WHERE flights.origin = 'JFK'
+  GROUP BY planes.manufacturer
+  ORDER BY total_flights DESC
+  LIMIT 5
 ")
 ```
 

@@ -541,8 +541,8 @@ SELECT RANK() OVER (
 ) FROM <table>
 </pre>
 
-* **`PARTITION BY month, day`:** Divides the flights into daily groups (just like `group_by(month, day)`).
-* **`ORDER BY dep_delay DESC`:** Ranks the largest departure delay as rank `1` within each day.
+* `PARTITION BY month, day`: Divides the flights into daily groups (just like `group_by(month, day)`).
+* `ORDER BY dep_delay DESC`: Ranks the largest departure delay as rank `1` within each day.
 
 ```r
 # 1. SQL Window Function: Rank flights by longest departure delay each day

@@ -5,7 +5,7 @@
    * Using `?` placeholders and `params = list(...)`
    * How **SQL Injection Attacks** (`' OR 'a'='a`) work and how parameterized queries prevent them
 2. **Ten Analytical Questions About `flights`**
-   * Multi-table `JOIN`s, aggregations, nested subqueries, `RANK() OVER (...)`, SQLite `strftime()` & Unix epochs, `HAVING BETWEEN`, `DISTINCT` subqueries, `IS NULL`, and `NOT LIKE` pattern matching
+   * Multi-table `JOIN`s, aggregations, `COALESCE()` missing-value imputation, `CASE WHEN` conditional logic, SQLite `strftime()` & Unix epochs, `HAVING BETWEEN`, `DISTINCT` subqueries, `IS NULL`, and `NOT LIKE` pattern matching
 
 ---
 
@@ -299,80 +299,78 @@ q("
 
 ---
 
-# Question 3 (Step 1): Most Popular Carrier at Each Airport
-## Counting Flights for Every `(origin, carrier)` Pair
+# Question 3 (Step 1): Imputing Missing Values with `COALESCE()`
+## Falling Back When `arr_delay` Is `NULL` on Departed Flights
 
-### Question 3: What is the most popular airline carrier at each of the three NYC airports?
-This question is a bit trickier! We solve it in **three progressive steps**.
+### Question 3: Among flights that actually departed (`dep_time IS NOT NULL`), how can we impute missing arrival delays (`arr_delay IS NULL`) and categorize flights by delay severity?
+We solve this in **three progressive steps** using **`COALESCE()`** and **`CASE WHEN`**.
 
-* **Step 1:** First, count the number of flights for each combination of `origin` and `carrier`, ordered by `origin` and `COUNT(*) DESC`:
-
-```r
-q("
-  SELECT origin, carrier, COUNT(*) AS n
-  FROM flights
-  GROUP BY origin, carrier
-  ORDER BY origin, COUNT(*) DESC
-") |> head(12)
-```
-
----
-
-# Question 3 (Step 2): Ranking Carriers Within Each Airport
-## Combining a Subquery with `RANK() OVER (PARTITION BY origin ...)`
-
-* **Step 2:** Next, we wrap our Step 1 aggregation inside a **subquery** `FROM (SELECT COUNT(*) AS n, origin, carrier FROM flights GROUP BY origin, carrier)` and apply the `RANK() OVER (...)` window function partitioned by `origin`:
+* In `flights`, the rows with `dep_time IS NULL` (and `dep_delay IS NULL`) are **cancelled flights**—they never took off, so imputing `0` minutes of delay for them would be misleading!
+* However several flights have (`dep_time IS NOT NULL` and `dep_delay IS NOT NULL`) but have `arr_delay IS NULL`
+* **`COALESCE(arr_delay, dep_delay)`** returns the **first non-`NULL` value** from left to right: it uses `arr_delay` when available, and falls back to `dep_delay` when `arr_delay` is `NULL`!
 
 ```r
 q("
   SELECT
-    RANK() OVER (
-      PARTITION BY origin
-      ORDER BY n DESC
-    ) AS r,
-    origin,
-    carrier,
-    n
-  FROM (
-    SELECT COUNT(*) AS n, origin, carrier
-    FROM flights
-    GROUP BY origin, carrier
-  )
-") |> head(12)
+    flight, origin, dest, dep_time, dep_delay, arr_delay,
+    COALESCE(arr_delay, dep_delay) AS effective_delay
+  FROM flights
+  WHERE dep_time IS NOT NULL AND arr_delay IS NULL
+  LIMIT 8
+")
 ```
 
 ---
 
-# Question 3 (Step 3): Filtering to `WHERE r = 1`
-## Nested Subqueries to Extract the Top Carrier per Origin
+# Question 3 (Step 2): Conditional Logic with `CASE WHEN`
+## Categorizing Departed Flights with `CASE WHEN ... THEN ... ELSE ... END`
 
-* **Step 3:** Finally, to keep **only** the #1 most popular carrier (`r = 1`) at each airport, we wrap our Step 2 query in one more outer `SELECT * FROM (...) WHERE r = 1`:
+* **Step 2 — How `CASE WHEN` Works:** In SQL, `CASE WHEN` is the equivalent of `dplyr::case_when()` or `ifelse()`. Using our imputed `COALESCE(arr_delay, dep_delay)` on departed flights (`WHERE dep_time IS NOT NULL`), we classify each flight into a delay tier:
 
 ```r
 q("
-  SELECT * FROM (
-    SELECT
-      RANK() OVER (
-        PARTITION BY origin
-        ORDER BY n DESC
-      ) AS r,
-      carrier,
-      origin,
-      n
-    FROM (
-      SELECT COUNT(*) AS n, carrier, origin
-      FROM flights
-      GROUP BY carrier, origin
-    )
-  )
-  WHERE r = 1
+  SELECT
+    flight, origin, dest, dep_delay, arr_delay,
+    COALESCE(arr_delay, dep_delay) AS effective_delay,
+    CASE
+      WHEN COALESCE(arr_delay, dep_delay) <= 0 THEN '1. On Time or Early (<= 0 min)'
+      WHEN COALESCE(arr_delay, dep_delay) <= 30 THEN '2. Minor Delay (1-30 min)'
+      ELSE '3. Major Delay (> 30 min)'
+    END AS delay_category
+  FROM flights
+  WHERE dep_time IS NOT NULL
+  LIMIT 10
 ")
 ```
 
-* **Result:**
-  * **EWR:** `UA` (United Air Lines — `46,087` flights)
-  * **JFK:** `B6` (JetBlue Airways — `42,076` flights)
-  * **LGA:** `DL` (Delta Air Lines — `23,067` flights)
+---
+
+# Question 3 (Step 3): Aggregating by `CASE WHEN` & `COALESCE()`
+## Summarizing Departed Flights Across Delay Categories
+
+* **Step 3:** Now we combine `CASE WHEN` and `COALESCE(arr_delay, dep_delay)` with `GROUP BY delay_category` on all departed flights (`WHERE dep_time IS NOT NULL`):
+
+```r
+q("
+  SELECT
+    CASE
+      WHEN COALESCE(arr_delay, dep_delay) <= 0 THEN '1. On Time or Early (<= 0 min)'
+      WHEN COALESCE(arr_delay, dep_delay) <= 30 THEN '2. Minor Delay (1-30 min)'
+      ELSE '3. Major Delay (> 30 min)'
+    END AS delay_category,
+    COUNT(*) AS total_departed_flights,
+    ROUND(AVG(COALESCE(arr_delay, dep_delay)), 2) AS avg_effective_delay
+  FROM flights
+  WHERE dep_time IS NOT NULL
+  GROUP BY delay_category
+  ORDER BY delay_category
+")
+```
+
+* **Result (across all `328,521` departed flights):**
+  * **`1. On Time or Early (<= 0 min)`:** `194,830` flights (`-15.97` min avg effective delay)
+  * **`2. Minor Delay (1-30 min)`:** `81,806` flights (`11.92` min avg effective delay)
+  * **`3. Major Delay (> 30 min)`:** `51,885` flights (`85.48` min avg effective delay)
 
 ---
 

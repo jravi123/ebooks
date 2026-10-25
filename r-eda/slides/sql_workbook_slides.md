@@ -299,14 +299,13 @@ q("
 
 ---
 
-# Question 3 (Step 1): Imputing Missing Values with `COALESCE()`
+# Question 3: Imputing Missing Values with `COALESCE()`
 ## Falling Back When `arr_delay` Is `NULL` on Departed Flights
 
-### Question 3: Among flights that actually departed (`dep_time IS NOT NULL`), how can we impute missing arrival delays (`arr_delay IS NULL`) and categorize flights by delay severity?
-We solve this in **three progressive steps** using **`COALESCE()`** and **`CASE WHEN`**.
+### Question 3: Among flights that actually departed (`dep_time IS NOT NULL`), how can we impute missing arrival delays (`arr_delay IS NULL`)?
 
 * In `flights`, the rows with `dep_time IS NULL` (and `dep_delay IS NULL`) are **cancelled flights**—they never took off, so imputing `0` minutes of delay for them would be misleading!
-* However several flights have (`dep_time IS NOT NULL` and `dep_delay IS NOT NULL`) but have `arr_delay IS NULL`
+* However, several flights have `dep_time IS NOT NULL` and `dep_delay IS NOT NULL`, but `arr_delay IS NULL` (e.g., diverted flights).
 * **`COALESCE(arr_delay, dep_delay)`** returns the **first non-`NULL` value** from left to right: it uses `arr_delay` when available, and falls back to `dep_delay` when `arr_delay` is `NULL`!
 
 ```r
@@ -322,19 +321,20 @@ q("
 
 ---
 
-# Question 3 (Step 2): Conditional Logic with `CASE WHEN`
+# Conditional Logic with `CASE WHEN`
 ## Categorizing Departed Flights with `CASE WHEN ... THEN ... ELSE ... END`
 
-* **Step 2 — How `CASE WHEN` Works:** In SQL, `CASE WHEN` is the equivalent of `dplyr::case_when()` or `ifelse()`. Using our imputed `COALESCE(arr_delay, dep_delay)` on departed flights (`WHERE dep_time IS NOT NULL`), we classify each flight into a delay tier:
+### How can we categorize departed flights (`dep_time IS NOT NULL`) into delay severity tiers?
+* In SQL, **`CASE WHEN ... THEN ... ELSE ... END`** is the equivalent of `dplyr::case_when()` or `ifelse()`.
+* Using `dep_delay` on departed flights (`WHERE dep_time IS NOT NULL`), we classify each flight into a delay tier:
 
 ```r
 q("
   SELECT
-    flight, origin, dest, dep_delay, arr_delay,
-    COALESCE(arr_delay, dep_delay) AS effective_delay,
+    flight, origin, dest, dep_delay,
     CASE
-      WHEN COALESCE(arr_delay, dep_delay) <= 0 THEN '1. On Time or Early (<= 0 min)'
-      WHEN COALESCE(arr_delay, dep_delay) <= 30 THEN '2. Minor Delay (1-30 min)'
+      WHEN dep_delay <= 0  THEN '1. On Time or Early (<= 0 min)'
+      WHEN dep_delay <= 30 THEN '2. Minor Delay (1-30 min)'
       ELSE '3. Major Delay (> 30 min)'
     END AS delay_category
   FROM flights
@@ -342,35 +342,6 @@ q("
   LIMIT 10
 ")
 ```
-
----
-
-# Question 3 (Step 3): Aggregating by `CASE WHEN` & `COALESCE()`
-## Summarizing Departed Flights Across Delay Categories
-
-* **Step 3:** Now we combine `CASE WHEN` and `COALESCE(arr_delay, dep_delay)` with `GROUP BY delay_category` on all departed flights (`WHERE dep_time IS NOT NULL`):
-
-```r
-q("
-  SELECT
-    CASE
-      WHEN COALESCE(arr_delay, dep_delay) <= 0 THEN '1. On Time or Early (<= 0 min)'
-      WHEN COALESCE(arr_delay, dep_delay) <= 30 THEN '2. Minor Delay (1-30 min)'
-      ELSE '3. Major Delay (> 30 min)'
-    END AS delay_category,
-    COUNT(*) AS total_departed_flights,
-    ROUND(AVG(COALESCE(arr_delay, dep_delay)), 2) AS avg_effective_delay
-  FROM flights
-  WHERE dep_time IS NOT NULL
-  GROUP BY delay_category
-  ORDER BY delay_category
-")
-```
-
-* **Result (across all `328,521` departed flights):**
-  * **`1. On Time or Early (<= 0 min)`:** `194,830` flights (`-15.97` min avg effective delay)
-  * **`2. Minor Delay (1-30 min)`:** `81,806` flights (`11.92` min avg effective delay)
-  * **`3. Major Delay (> 30 min)`:** `51,885` flights (`85.48` min avg effective delay)
 
 ---
 
@@ -569,7 +540,7 @@ q("SELECT COUNT(*) AS wrong_null_check FROM flights WHERE dep_time = NULL")
 
 ---
 
-# Bonus Question: Flights to Airports with a One-Word Name
+# Flights to Airports with a One-Word Name
 ## Step 1: Pattern Matching Strings with `LIKE` and `NOT LIKE`
 
 ### Question: How many flights were destined for airports whose `name` is a single word (contains no spaces)?
@@ -588,7 +559,7 @@ q("SELECT faa, name FROM airports WHERE name NOT LIKE '% %'")
 
 ---
 
-# Bonus Question (Step 2): Counting Flights via `INNER JOIN`
+# Counting Flights via `INNER JOIN`
 ## Two Equivalent Ways to Join `flights` and `airports`
 
 Now we count how many rows in `flights` have a destination (`flights.dest`) matching one of those one-word airports (`airports.faa`). We can write this either with a **subquery join** or a **direct `INNER JOIN` + `WHERE`**:
@@ -669,24 +640,12 @@ plane_flight_count("N328AA")
 
 ---
 
-# Summary: R `DBI` & `RSQLite` Quick Reference
-## Key Functions Used in This Workbook
+# Cleanup
+
 
 ```r
 # Clean up our database connections when finished
 dbDisconnect(con)
 dbDisconnect(scon)
 ```
-
-| Database Operation | R (`DBI` + `RSQLite`) Function | Purpose |
-| :--- | :--- | :--- |
-| **Connect In-Memory DB** | `con <- dbConnect(RSQLite::SQLite(), ":memory:")` | Create a fast temporary SQLite database in RAM |
-| **Write R Table to SQL** | `dbWriteTable(con, "flights", flights, overwrite = TRUE)` | Populate SQLite tables from `nycflights13` data frames |
-| **Query Helper Function** | `q <- function(...) dbGetQuery(con, ...)` | Shortcut wrapper to execute queries and return data frames |
-| **Query to Data Frame** | `q("SELECT ...")` / `dbGetQuery(con, ...)` | Execute a `SELECT` query and return all results at once |
-| **Send Query Handle** | `res <- dbSendQuery(con, "SELECT ...")` | Send a query for step-by-step cursor fetching |
-| **Fetch 1 / Fetch All** | `dbFetch(res, n = 1)` / `dbFetch(res, n = -1)` | Retrieve the next `n` rows (or all remaining rows) |
-| **Column Metadata** | `dbColumnInfo(res)` | Inspect result column names and data types |
-| **Execute DDL / DML** | `dbExecute(scon, "CREATE / INSERT ...")` | Run statements that modify schema or rows |
-| **Parameterized Query** | `q(sql, params = list(x))` | Safely bind user parameters and prevent SQL injection |
 

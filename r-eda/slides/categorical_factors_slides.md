@@ -159,6 +159,7 @@ Notice that `read_csv()` reports what columns it found and what **data types** (
 What happens when a CSV file does **not** have a header row (`heights_no_hdr.csv`)?
 
 ```r
+library(tidyverse)
 # Problem: read_csv() assumes the first row of data is the header!
 read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/heights_no_hdr.csv") |> print()
 ```
@@ -218,7 +219,7 @@ a, b, c
 
 ---
 
-# Exercise 1: Customizing `read_csv()`
+# Exercise: Customizing `read_csv()`
 
 Read in the inline `csv` string below using `read_csv()`.
 1. Do **not** read the first row as the header (`col_names = FALSE`).
@@ -324,13 +325,13 @@ Explicit `col_types` guarantees consistent schemas across production data pipeli
 Recently in global news, the population of China began shrinking after decades of growth, carrying major demographic and economic implications.
 
 Let's study this phenomenon directly from two raw [World Bank](https://data.worldbank.org/) CSV files:
-1. **Total Population (`SP.POP.TOTL`)**: `https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv`
-2. **Fertility Rate (`SP.DYN.TFRT.IN`, births per woman)**: `https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/latest_2026-fertility.csv`
+1. **Total Population**: `https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv`
+2. **Fertility Rate (births per woman)**: `https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/latest_2026-fertility.csv`
 
 Let's see what happens when we try to import the raw World Bank Population CSV directly without inspecting it first:
 
 ```r
-world_pop_bad <- read_csv("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv")
+world_pop_bad <- read_csv("https://raw.githubusercontent.com/jravi123/datasets/refs/heads/main/datasets/population_2026.csv")
 problems(world_pop_bad)
 ```
 
@@ -343,14 +344,14 @@ problems(world_pop_bad)
 Let's inspect the first 5 raw lines of the World Bank CSV file:
 
 ```r
-readLines("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv", n = 5)
+readLines("https://raw.githubusercontent.com/jravi123/datasets/refs/heads/main/datasets/population_2026.csv", n = 5)
 ```
 
 The first **three lines** contain World Bank metadata (`"Data Source"`, blank line, `"Last Updated Date"`), and the actual column headers appear on line 4!
 By passing **`skip = 3`**, `read_csv()` skips the metadata lines and reads the header properly:
 
 ```r
-world_pop <- read_csv("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv", skip = 3)
+world_pop <- read_csv("https://raw.githubusercontent.com/jravi123/datasets/refs/heads/main/datasets/population_2026.csv", skip = 3)
 problems(world_pop)
 ```
 
@@ -367,8 +368,8 @@ glimpse(world_pop)
 head(world_pop)
 ```
 
-> [!WARNING] Why is there an extra `...69` column at the end?
-> Notice that `world_pop` has a 69th column named **`...69`** filled with `NA`! This happens because every line in the World Bank's raw CSV export ends with a **trailing comma** (`,`), which `read_csv()` interprets as an empty final column.
+> [!WARNING] Why is there an extra `...71` column at the end?
+> Notice that `world_pop` has a 71th column named **`...71`** filled with `NA`! This happens because every line in the World Bank's raw CSV export ends with a **trailing comma** (`,`), which `read_csv()` interprets as an empty final column.
 
 ---
 
@@ -377,33 +378,33 @@ head(world_pop)
 Now let's load the World Bank Fertility Rate dataset (`births per woman`) using `skip = 3`:
 
 ```r
-world_fert <- read_csv("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/latest_2026-fertility.csv", skip = 3)
+world_fert <- read_csv("https://raw.githubusercontent.com/jravi123/datasets/refs/heads/main/datasets/latest_2026-fertility.csv", skip = 3)
 head(world_fert)
 ```
 
-Let's check whether the `2023` column is `NA` across all rows in the fertility file:
+Let's check whether the `2025` column is `NA` across all rows in the fertility file:
 
 ```r
-world_fert$`2023` |> is.na() |> unique()
+world_fert$`2025` |> is.na() |> unique()
 ```
 
-Since `2023` is entirely `NA` (and `...69` is a trailing-comma artifact), we should drop both columns when reshaping!
+Since `2025` is entirely `NA` (and `...71` is a trailing-comma artifact), we should drop both columns when reshaping!
 
 ---
 
 # Reshaping China's Fertility Data with `pivot_longer()`
 
-In `world_fert`, each year (`1960` through `2022`) is stored as its own column. To plot a time series in `ggplot2`, we filter for `'China'`, pivot the year columns into a tidy `(year, fert)` format, and drop `2023` and `...69`:
+In `world_fert`, each year (`1960` through `2024`) is stored as its own column. To plot a time series in `ggplot2`, we filter for `'China'`, pivot the year columns into a tidy `(year, fert)` format, and drop `2025` and `...71`:
 
 ```r
 wb_fert_longer <- world_fert |>
   filter(`Country Name` == "China") |>
   pivot_longer(
-    cols = c(`1960`:`2022`),
+    cols = c(`1960`:`2024`),
     names_to = "year",
     values_to = "fert"
   ) |>
-  select(-`2023`, -`...69`) 
+  select(-`2025`, -`...71`) 
 
 wb_fert_longer |> head()
 ```
@@ -422,7 +423,7 @@ wb_fert_longer |>
 ```
 
 Look closely at two problems in this plot:
-1. The x-axis labels (`1960`..`2022`) are completely **overlapping** and unreadable.
+1. The x-axis labels (`1960`..`2024`) are completely **overlapping** and unreadable.
 2. `geom_line()` didn't draw a line!
 
 Let's check the column types with `glimpse(wb_fert_longer)`:
@@ -444,7 +445,7 @@ wb_fert_longer |>
   geom_point(color = "firebrick") +
   geom_line(color = "firebrick", linewidth = 0.8) +
   labs(
-    title = "China's Total Fertility Rate (1960–2022)",
+    title = "China's Total Fertility Rate (1960–2024)",
     x = "Year",
     y = "Births per Woman"
   ) +
@@ -462,8 +463,8 @@ How does China's total population trajectory compare to its fertility rate? Let'
 ```r
 wb_pop_longer <- world_pop |>
   filter(`Country Name` == "China") |>
-  pivot_longer(cols = c(`1960`:`2022`), names_to = "year", values_to = "pop") |>
-  select(-`2023`, -`...69`)
+  pivot_longer(cols = c(`1960`:`2024`), names_to = "year", values_to = "pop") |>
+  select(-`2025`, -`...71`)
 
 wb_pop_fert <- wb_pop_longer |>
   left_join(wb_fert_longer, join_by(`Country Name`, year)) |>
@@ -480,29 +481,38 @@ wb_pop_fert |>
 
 ---
 
-# Exercise 2: Exploring World Bank Trends Across Countries
+# Exercise: Exploring World Bank Trends Across Countries
 
-Use `world_fert` to compare the fertility rate trajectories (`1960` to `2022`) of **`"China"`**, **`"India"`**, and **`"United States"`** on the same line chart (`color = \`Country Name\``). Don't forget `parse_number(year)`!
+Use `world_fert` to compare the fertility rate trajectories (`1960` to `2024`) of **`"China"`**, **`"India"`**, and **`"United States"`** on the same line chart (`color = \`Country Name\``). Don't forget `parse_number(year)`!
 
 ```r
 # Filter world_fert for China, India, and United States, pivot_longer, parse_number(year), and plot:
+
+world_fert |>
+  filter(`Country Name` ...) |>
+  pivot_longer(cols = c(`1960`:`2024`), names_to = "year", values_to = "fert") |>
+  mutate(year = parse_number(year)) |>
+  ggplot(aes(x = year, y = fert, color = `Country Name`)) +
+  geom_line(linewidth = 1) +
+  labs(title = "Fertility Rate Comparison (1960–2024)", x = "Year", y = "Births per Woman") +
+  theme_minimal()
 
 ```
 
 ```r block=answer
 world_fert |>
   filter(`Country Name` %in% c("China", "India", "United States")) |>
-  pivot_longer(cols = c(`1960`:`2022`), names_to = "year", values_to = "fert") |>
+  pivot_longer(cols = c(`1960`:`2024`), names_to = "year", values_to = "fert") |>
   mutate(year = parse_number(year)) |>
   ggplot(aes(x = year, y = fert, color = `Country Name`)) +
   geom_line(linewidth = 1) +
-  labs(title = "Fertility Rate Comparison (1960–2022)", x = "Year", y = "Births per Woman") +
+  labs(title = "Fertility Rate Comparison (1960–2024)", x = "Year", y = "Births per Woman") +
   theme_minimal()
 ```
 
 ---
 
-# Part 2: Strings and Factors (`Lecture 14`)
+# Part 2: Strings and Factors
 
 R has two distinct data types for representing categorical or text variables:
 
@@ -591,7 +601,7 @@ relig_summary |>
 
 ---
 
-# Exercise 3: Ordering a Bar Chart with `fct_reorder()`
+# Exercise: Ordering a Bar Chart with `fct_reorder()`
 
 Fix the bar chart below so that the income bars are arranged in ascending/descending order of count (`n`), making the chart much easier to interpret:
 
@@ -713,9 +723,9 @@ ggplot(gss18_gen) +
 
 ---
 
-# Exercise 4: Finding the Oldest Respondent's Birth Year
+# Exercise: Finding the Oldest Respondent's Birth Year
 
-Using `gss18`, find the row with the maximum `age` using `slice_max(age, n = 1)` and calculate the year that person was born (`2018 - oldest_person$age`):
+Using `gss18`, find the row with the maximum `age` and calculate the year that person was born (`2018 - oldest_person_age`):
 
 ```r
 # Find the birth year of the oldest person in gss18:
@@ -723,8 +733,8 @@ Using `gss18`, find the row with the maximum `age` using `slice_max(age, n = 1)`
 ```
 
 ```r block=answer
-gss18 |> slice_max(age, n = 1) |> head(1) -> oldest_person
-2018 - oldest_person$age
+gss18$age |> max(na.rm = T) -> oldest_person_age
+2018 - oldest_person_age
 ```
 
 ---

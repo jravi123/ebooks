@@ -5,7 +5,7 @@
 
 # Lecture Agenda & Topics
 
-In this two-part lecture, we first master **Loading and Saving Data** from plain-text and real-world files (`Lecture 13`), and then explore **Categorical Data & Factors** using `forcats` (`Lecture 14`).
+In this two-part lecture, we first master **Loading and Saving Data** from plain-text and real-world files, and then explore **Categorical Data & Factors** using `forcats`.
 
 * **Part 1: Loading & Saving Data (`readr`)**
   * **Data Sharing Formats**: Plain text (`CSV`, `TSV`, `XML`, `HTML`, `JSON`), binary formats, and databases.
@@ -18,32 +18,6 @@ In this two-part lecture, we first master **Loading and Saving Data** from plain
   * **Reordering Factor Levels**: `fct_reorder()`, `fct_reorder2()`, `fct_infreq()`, and `fct_rev()`.
   * **Modifying & Lumping Levels**: `fct_recode()`, `fct_collapse()`, `fct_lump_lowfreq()`, `fct_lump_n()`, and `fct_lump_min()`.
   * **Sociological Case Study**: Analyzing Generational Shifts in the General Social Survey (`gss18` / `gss_cat`).
-
----
-
-# Environment & Data Setup
-
-Run this setup block first! It loads the required packages (`tidyverse`, `lubridate`) and loads our datasets using absolute raw GitHub URLs from `https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/` so every code block in this deck runs interactively:
-
-```r Notice="" block=setup
-library(tidyverse)
-library(lubridate)
-set.seed(2939394)
-
-world_pop  <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.POP.TOTL_DS2_en_csv_v2_2431709.csv", skip = 3)
-world_fert <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.DYN.TFRT.IN_DS2_EN_csv_v2_2010344.csv", skip = 3)
-gss18      <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/gss18.csv")
-```
-
-```r
-library(tidyverse)
-library(lubridate)
-set.seed(2939394)
-
-# Load gss18 from absolute raw GitHub URL:
-gss18 <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/gss18.csv")
-glimpse(gss18)
-```
 
 ---
 
@@ -123,7 +97,7 @@ When working with rectangular (tabular) datasets, **plain text delimited files**
 
 Consider this raw line from a Detroit traffic incident CSV file:
 
-```text
+```r-norun
 -82.9,42.4,3043540,1703280231,Gratiot Ave & Mapleridge St,"ACCIDENT, HIT & RUN",OUIL,5422,54001,"ACCIDENT, HIT & RUN",2017/03/28 22:00:00+00
 ```
 
@@ -148,6 +122,27 @@ Consider this raw line from a Detroit traffic incident CSV file:
   1. **Speed**: It is significantly faster (powered by the `vroom` C++ engine).
   2. **Tibbles**: It returns a clean **`tibble`** rather than a legacy base `data.frame`.
   3. **Reproducibility**: It does not mangle column names or silently convert strings in unexpected ways.
+
+```r-norun
+
+#  first two lines of a sample file
+1st Quarter Sales,Total Cost ($),Employee-ID
+1000,500,EMP-01
+
+# Base R
+df_base <- read.csv("employees.csv")
+colnames(df_base)
+#> [1] "X1st.Quarter.Sales" "Total.Cost......."  "Employee.ID"      
+# Result: Numbers prefixed with 'X', spaces/symbols converted to '.', multiple '.' stacked.
+
+# readr
+library(readr)
+df_readr <- read_csv("employees.csv")
+colnames(df_readr)
+#> [1] "1st Quarter Sales" "Total Cost ($)"    "Employee-ID"     
+# Result: Column names are completely preserved as written.
+
+```
 
 ```r
 heights <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/heights.csv") |> print()
@@ -190,6 +185,8 @@ Real-world files often contain instructional header lines, non-standard missing 
 * **`na = c(...)`**: Specifies custom strings (such as `"."` or `"0"`) that should be converted to `NA`.
 * **`comment = "#"`**: Ignores any lines (or trailing text) starting with the comment character.
 
+### Example 1
+
 ```r
 # Skipping 3 metadata lines and treating '0' as NA
 read_csv(
@@ -201,6 +198,11 @@ read_csv(
 7, 8, 0
 ", skip = 3, na = c("0"), col_names = c("a", "b", "c"))
 
+```
+
+### Example 2
+
+```r
 # Skipping comment lines prefaced by '#' anywhere in the file
 read_csv("
 # First comment line
@@ -250,7 +252,7 @@ Just as `readr` provides `read_*()` functions, it provides complementary **`writ
 * **`write_rds(x, file)`** / **`read_rds(file)`**: Saves a single R object in R's binary **RDS** format — preserving exact R data types (such as factor levels and dates) without re-parsing!
 * **`save(var1, var2, file = "data.RData")`**: Saves multiple R variables into a single binary workspace file.
 
-```r
+```r-norun
 # Create a sample dataframe
 my_data <- data.frame(
   name = c("Alice", "Bob", "Charlie"),
@@ -320,13 +322,13 @@ Explicit `col_types` guarantees consistent schemas across production data pipeli
 Recently in global news, the population of China began shrinking after decades of growth, carrying major demographic and economic implications.
 
 Let's study this phenomenon directly from two raw [World Bank](https://data.worldbank.org/) CSV files:
-1. **Total Population (`SP.POP.TOTL`)**: `https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.POP.TOTL_DS2_en_csv_v2_2431709.csv`
-2. **Fertility Rate (`SP.DYN.TFRT.IN`, births per woman)**: `https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.DYN.TFRT.IN_DS2_EN_csv_v2_2010344.csv`
+1. **Total Population (`SP.POP.TOTL`)**: `https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv`
+2. **Fertility Rate (`SP.DYN.TFRT.IN`, births per woman)**: `https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/latest_2026-fertility.csv`
 
 Let's see what happens when we try to import the raw World Bank Population CSV directly without inspecting it first:
 
 ```r
-world_pop_bad <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.POP.TOTL_DS2_en_csv_v2_2431709.csv")
+world_pop_bad <- read_csv("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv")
 problems(world_pop_bad)
 ```
 
@@ -339,14 +341,14 @@ problems(world_pop_bad)
 Let's inspect the first 5 raw lines of the World Bank CSV file:
 
 ```r
-readLines("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.POP.TOTL_DS2_en_csv_v2_2431709.csv", n = 5)
+readLines("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv", n = 5)
 ```
 
 The first **three lines** contain World Bank metadata (`"Data Source"`, blank line, `"Last Updated Date"`), and the actual column headers appear on line 4!
 By passing **`skip = 3`**, `read_csv()` skips the metadata lines and reads the header properly:
 
 ```r
-world_pop <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.POP.TOTL_DS2_en_csv_v2_2431709.csv", skip = 3)
+world_pop <- read_csv("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/population_2026.csv", skip = 3)
 problems(world_pop)
 ```
 
@@ -373,7 +375,7 @@ head(world_pop)
 Now let's load the World Bank Fertility Rate dataset (`births per woman`) using `skip = 3`:
 
 ```r
-world_fert <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/API_SP.DYN.TFRT.IN_DS2_EN_csv_v2_2010344.csv", skip = 3)
+world_fert <- read_csv("https://github.com/jravi123/datasets/raw/refs/heads/main/datasets/latest_2026-fertility.csv", skip = 3)
 head(world_fert)
 ```
 
@@ -399,8 +401,9 @@ wb_fert_longer <- world_fert |>
     names_to = "year",
     values_to = "fert"
   ) |>
-  select(-`2023`, -`...69`) |>
-  print()
+  select(-`2023`, -`...69`) 
+
+wb_fert_longer |> head()
 ```
 
 ---
@@ -547,6 +550,8 @@ factor(bad, levels = month.abb)
 The [General Social Survey (GSS)](https://gss.norc.org/) is a long-running US sociological survey conducted by NORC at the University of Chicago. Let's inspect `gss18` (and `forcats::gss_cat`):
 
 ```r
+gss18 <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/gss18.csv")
+
 gss18 |> glimpse()
 
 # View unique categorical values and their frequencies with count()
@@ -590,14 +595,15 @@ Fix the bar chart below so that the income bars are arranged in ascending/descen
 
 ```r
 # Reorder income by n using fct_reorder():
-gss18 |>
+gss18 |> filter(!is.na(income)) |>
   count(income) |>
   ggplot(aes(y = income, x = n)) +
-  geom_col()
+  geom_col(fill = "steelblue") +
+  theme_minimal()
 ```
 
 ```r block=answer
-gss18 |>
+gss18 |> filter(!is.na(income)) |>
   count(income) |>
   ggplot(aes(y = fct_reorder(income, n), x = n)) +
   geom_col(fill = "steelblue") +

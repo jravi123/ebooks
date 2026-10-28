@@ -145,6 +145,8 @@ colnames(df_readr)
 ```
 
 ```r
+library(tidyverse)
+
 heights <- read_csv("https://raw.githubusercontent.com/jravi123/ebooks/main/r-eda/dataset/heights.csv") |> print()
 ```
 

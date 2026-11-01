@@ -1,5 +1,5 @@
 # Text Wrangling & Strings
-## String Manipulation, Concatenation, Substrings, Splitting & Literary Analysis (`Lecture 15`)
+## String Manipulation, Concatenation, Substrings, Splitting & Literary Analysis
 
 ---
 
@@ -7,19 +7,10 @@
 
 Today's lecture corresponds to Chapters 14 and 17 of *R for Data Science*:
 
-* **Understand the basics of working with strings in R**:
-  * Double (`"`) vs. single (`'`) quotes, escaping quotes (`\"`), and special characters (`\n`, `\t`, `\\`).
-  * Console display functions: `print()`, `cat()`, and `writeLines()`.
-  * Character encodings: **ASCII** vs. **Unicode** (`\u00A9`).
-* **Convert data to strings & combine strings**:
-  * Base R `paste()` / `paste0()` vs. Tidyverse `str_c()` and `str_flatten()`.
-  * Vector `length()` vs. character count `str_length()`.
-* **Extract data from strings**:
-  * Subsetting and mutating substrings with `str_sub()`.
-  * Splitting strings into lists with `str_split()` and flattening with `unlist()`.
-  * Extracting tabular columns with `separate_wider_delim()` and `separate_wider_position()`.
-* **Literary Text Analysis Case Study — *Harry Potter***:
-  * Analyzing `philosophers_stone` with `str_length()`, `str_count()`, `str_locate()`, `str_starts()`, and `ggplot2`.
+* Understand the basics of working with strings in R
+* Convert data to strings & combine string
+* Extract data from strings
+* Text Analysis Case Study — *Harry Potter*
 
 ---
 
@@ -30,7 +21,6 @@ Run this setup block first! It loads `tidyverse` and `nycflights13`, downloads t
 ```r
 library(tidyverse)
 library(nycflights13)
-set.seed(2939394)
 
 # Download and load the Harry Potter dataset directly from GitHub RDS
 download.file(
@@ -40,12 +30,6 @@ download.file(
 )
 hp_all <- readRDS("harrypotter_all.rds")
 philosophers_stone <- hp_all$philosophers_stone
-
-# Initialize Shakespeare Sonnet 18 lines
-line1 <- "Nor shall death brag thou wander'st in his shade,"
-line2 <- "When in eternal lines to time thou grow'st:"
-line3 <- "So long as men can breathe or eyes can see,"
-line4 <- "So long lives this, and this gives life to thee."
 
 cat("Setup complete! Loaded", length(philosophers_stone), "chapters of Philosopher's Stone.\n")
 ```
@@ -77,7 +61,7 @@ Wrap the string in **single quotes (`'`)** so double quotes inside don't need es
 
 # Other Special Characters (`\n`, `\t`, `\\`)
 
-Since the backslash (`\`) is used to escape special characters, if you need a **literal backslash** inside your string, you must escape the backslash itself using **`\\`**.
+Since the backslash (`\`) is used to escape special characters, if you need a `\` inside your string, you must escape the backslash itself using `\\`.
 
 * **Newline (`\n`)**: Starts a new line. Use `\\n` if you want the literal characters `\n` to appear as part of the output string.
 * **Tab (`\t`)**: Inserts a horizontal tab stop.
@@ -108,11 +92,13 @@ However, using **`cat()`** or **`writeLines()`** evaluates the escape sequences 
 ```r
 # cat() renders the newline
 cat('abc \nabc')
+cat('xyz')
 ```
 
 ```r
-# writeLines() renders the tab (\t) and prints a clean line
+# writeLines() renders the tab (\t) and adds a newline at the end.
 writeLines('abc \tabc')
+writeLines('xyz')
 ```
 
 ---
@@ -161,13 +147,13 @@ Let's see how `paste()` works on single strings and vectors:
 paste('a', 'b', 'c')
 
 paste(
-  "Section", c("200", "100", "200"),
+  "Section", c("100", "200", "100"),
   "meets on",
-  c("Tuesday", "Monday", "Wednesday")
+  c("Monday", "Tuesday", "Wednesday", "Thursday")
 )
 ```
 
-Notice how `paste()` automatically recycles the scalar strings `"Section"` and `"meets on"` across the 3-element vectors!
+Notice how `paste()` automatically recycles the scalar strings `"Section"` and `"meets on"` across the 4-element vectors!
 
 ---
 
@@ -218,7 +204,7 @@ str_c("Score:", c(95, NA, 88), sep = " ")
 
 ---
 
-# Exercise 1: Joining Shakespeare's Sonnet 18 with `str_c()`
+# Exercise: Joining Shakespeare's Sonnet 18 with `str_c()`
 
 Join the four lines of Shakespeare's *Sonnet 18* below into a single multi-line string using newline characters (`sep = '\n'`) and **`str_c()`**, then display the result with `cat()`:
 
@@ -332,12 +318,14 @@ sonnet18_lines <- str_split(sonnet18, "\n") # notice use of newline
 sonnet18_lines
 ```
 
+Why did `str_split(sonnet18, "\n")` return a **list** (`[[1]]`) instead of a character vector?
+Because when `str_split()` is given a vector of strings, each input string might split into a different number of pieces!
+
+
 ---
 
 # Flattening Lists with `unlist()`
 
-Why did `str_split(sonnet18, "\n")` return a **list** (`[[1]]`) instead of a character vector?
-Because when `str_split()` is given a vector of strings, each input string might split into a different number of pieces!
 
 To flatten a list into a plain atomic vector, use **`unlist()`**:
 
@@ -355,7 +343,7 @@ z[1]
 
 ---
 
-# Exercise 2: Tokenizing *Sonnet 18* into Words
+# Exercise: Tokenizing *Sonnet 18* into Words
 
 **Tokenization** is the process computer languages use to turn text strings into discrete words (or "tokens").
 Use `str_split()` to split `sonnet18` by spaces (`" "`), flatten the result with `unlist()`, and determine: **how many words are there?**
@@ -373,7 +361,7 @@ str_split(sonnet18, " ") |> unlist() |> length()
 
 ---
 
-# Tidyverse `separate_*` Functions for Data Frames
+# Tidyverse Functions for Data Frames
 
 When working with string columns inside a `tibble`, `tidyr` provides built-in functions to split a single character column into multiple rows or multiple columns (analogous to `pivot_longer` and `pivot_wider`):
 
@@ -424,13 +412,14 @@ str_sub(ch1, 1, 350)
 
 ---
 
-# Exercise 3: Finding the Longest Chapter
+# Exercise: Finding the Longest Chapter
 
 What is the longest chapter (in number of characters) in *Philosopher's Stone*?
 *(Hint: Combine `str_length()` with `which.max()`!)*
 
 ```r
 # Find which chapter index has the maximum character length:
+philosophers_stone
 
 ```
 
@@ -473,10 +462,10 @@ str_sub(ch1, 5243, 5247)
 
 ---
 
-# Exercise 4: Last 100 Characters of Chapter 1
+# Exercise: Last 100 Characters of Chapter 1
 
 What are the last 100 characters of Chapter 1 (`ch1`)?
-*(Hint: Use `str_sub()` with a negative start index!)*
+
 
 ```r
 ch1 <- philosophers_stone[[1]]
@@ -492,7 +481,7 @@ ch1 |> str_sub(-100)
 
 ---
 
-# Exercise 5: Extracting the Last Sentence of Chapter 1
+# Exercise: Extracting the Last Sentence of Chapter 1
 
 What is the last sentence of Chapter 1?
 * **Hint**: Use `str_split()` to split `ch1` on periods. Because a period (`.`) is a special wildcard character in regular expressions, you must escape it as **`"\\."`**! Then `unlist()` and use `tail(..., 1)`.
@@ -513,7 +502,7 @@ last_sentence_body
 
 ---
 
-# Exercise 6: Checking Chapter Prefixes with `str_starts()`
+# Exercise: Checking Chapter Prefixes with `str_starts()`
 
 Which chapter of *Philosopher's Stone* starts with the words **`THE POTIONS MASTER`**?
 *(Hint: Use `str_starts(string, pattern)`!)*
@@ -551,12 +540,18 @@ Chapter 8 returns `TRUE`!
 
 ---
 
-# Exercise 7: Plotting "Harry" Mentions Across Chapters
+# Exercise: Plotting "Harry" Mentions Across Chapters
 
 Create a bar chart (`geom_col()`) showing how many times the name `"Harry"` appears in each of the 17 chapters of *Philosopher's Stone*:
 
 ```r
 # Build a tibble with chapter and text, mutate harry_mentions = str_count(text, "Harry"), and plot:
+
+tibble(
+  chapter = 1:length(philosophers_stone),
+  text = philosophers_stone
+) |> ...
+
 
 ```
 
@@ -576,12 +571,3 @@ tibble(
   theme_minimal()
 ```
 
----
-
-# Summary & Key Takeaways
-
-1. **Escapes & Console Output**: Use `\"` to escape quotes, `\n` for newlines, `\\` for literal backslashes, and `cat()` or `writeLines()` to render escaped formatting.
-2. **Combining Strings**: Use `str_c(..., sep = "")` for element-wise concatenation (which safely propagates `NA`s) and `str_flatten()` to collapse an entire vector into one string.
-3. **Lengths & Substrings**: `length()` counts vector items while `str_length()` counts characters; `str_sub(x, start, end)` extracts or modifies substrings using positive or negative indices.
-4. **Splitting & Separating**: `str_split()` splits strings into a list (flatten with `unlist()`), while `separate_wider_delim()` and `separate_wider_position()` split data frame columns into new variables.
-5. **Pattern Counting & Locating**: `str_count()`, `str_locate()`, and `str_starts()` enable quantitative text analysis across large document collections like `philosophers_stone`.

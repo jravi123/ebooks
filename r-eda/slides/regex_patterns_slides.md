@@ -1,9 +1,9 @@
 # Regular Expressions (Regex)
 ## Pattern Matching, Character Classes, Quantifiers, and Capture Groups in R
 
-```r block=setup
+```r-setup
 library(tidyverse)
-set.seed(2939394)
+
 
 download.file(
   "https://raw.githubusercontent.com/jravi123/datasets/main/datasets/harrypotter_all.rds",
@@ -44,7 +44,7 @@ tricky <- "double_quote <- \"\\\"\" # or '\"' single_quote <- '\\\'' # or \"'\""
 cat(tricky)
 ```
 
-Because R uses `\` to escape quotes and special characters inside standard strings, writing backslashes requires **double-escaping** (`\\`), which quickly becomes hard to read!
+Because R uses `\` to escape quotes and special characters inside standard strings, writing backslashes requires **double-escaping**  (`\\`), which quickly becomes hard to read!
 
 ---
 # Raw String Literals (`r"(...)"`)
@@ -67,6 +67,8 @@ The most basic regular expression is a plain string. It matches if the target st
 We use `str_view()` to visually inspect how regular expressions match inside strings:
 
 ```r
+library(tidyverse)
+
 x <- c("apple", "banana", "pear") |> print()
 
 str_view(x, pattern = "an")
@@ -123,7 +125,7 @@ What is the **first string** in Chapter 1 of *Philosopher's Stone* (`ch1`) that 
 
 ```r
 # Extract the first match of 'H', any 3 characters, and 'y' from ch1
-ch1 |> str_sub(1, 200)
+ch1 |> ...
 
 ```
 
@@ -217,7 +219,7 @@ str_view(y, "\\s")
 ---
 # Custom Character Classes Using `[]`
 
-You can create your own character class using square brackets: `[abc]` will match `a`, `b`, or `c`.
+You can create your own character class using square brackets: `[be]` will match `b`, or `e`.
 
 By default, the "width" of a character class is **one single character**:
 
@@ -254,7 +256,7 @@ A character class we use frequently is `\b`, which stands for **word boundary**.
 str_view(c("Rafael Nadal", "Roger Federer", "Novak Djokovic"), "\\b")
 
 # Match "cat" only as a complete standalone word
-str_view(c("cat", "catalog", "bobcat"), r"(\bcat\b)")
+str_view(c("cat", "catalog", "bob cat"), r"(\bcat\b)")
 ```
 
 Every word has a word boundary on either side, so we can combine `\b` with other character classes to match specific kinds of words in text.
@@ -268,7 +270,7 @@ Explore using `str_count()` with the pattern:
 `<word boundary><character H><any other word character>`
 
 ```r
-# Count matches of \bH\w in ch1
+ch1 |> ...
 
 ```
 
@@ -321,11 +323,6 @@ str_count(ch1, "\\bh\\w{5}\\b")
 ---
 # Negations (`[^...]`)
 
-Earlier, we looked at quotations in *Philosopher's Stone*. The first quotation in Chapter 1 is:
-
-```r
-str_sub(ch1, 2150, 2163)
-```
 
 How can we find quotations? The pattern for a quote is:
 `<quotation mark><anything that is not a quotation mark><quotation mark>`
@@ -333,18 +330,17 @@ How can we find quotations? The pattern for a quote is:
 A **negation** is a character class that begins with `^` inside square brackets `[^...]`. It matches anything that is **not** inside the character class:
 
 ```r
-# Match sequences of characters that are NOT lowercase vowels
-str_view("match doesn't match", "[^aeiou]+")
+str_extract_all(ch1, r"(\"[^"]+\")")
 ```
 
 ---
 # Matching Quotations with Negation Classes
 
-To match quotations, we combine opening and closing quotes `"` with `[^"]+` (one or more characters that are not a quotation mark):
+We could also use single quote to construct our regex:
 
 ```r
-str_view(
-  '"Here is a quotation", said the professor. "And here is another."',
+str_extract_all(
+  ch1,
   '"[^"]+"'
 )
 ```
@@ -352,149 +348,155 @@ str_view(
 ---
 # Exercise: Finding Character Names in Chapter 1
 
-Find all capitalized words (like character names) in Chapter 1 (`ch1`) that appear in the middle of a sentence and are at least 6 letters long.
+Find all capitalized words (like character or place names) in Chapter 1 (`ch1`) that are **at least 6 letters long** (`1` uppercase letter followed by `5` or more lowercase letters).
 
-Use `str_extract_all()` and `table()` with the pattern:
-`<one or more spaces><capital letter><at least five lowercase letters><not ending in a period>`
+Use `str_extract_all()`, `unlist()`, and `table()` with the pattern:
+`<word boundary><capital letter><at least five lowercase letters><word boundary>`
+
+
 
 ```r
-# Extract and tabulate matching names in ch1
+# Extract and tabulate 6+ letter capitalized words in ch1
+ch1 |> ...
 
 ```
 
 ```r block=answer
-str_extract_all(ch1, "\\s+[A-Z][a-z]{5,}[^.]") |> table()
+str_extract_all(ch1, r"(\b[A-Z][a-z]{5,}\b)") |>
+  unlist() |>
+  table() |>
+  sort(decreasing = TRUE)
 ```
+
+*Why use `\b` instead of matching surrounding spaces `\s+` or punctuation `[^.]`?*
+
+Because `str_extract_all()` returns the entire matched text — including spaces or punctuation in the pattern would attach them to the extracted words and split `"Dumbledore"`, `"Dumbledore,"`, and `"Dumbledore?"` into separate counts!
 
 ---
 # Grouping with Parentheses `(...)`
 
-"Professor" is one of the most common capitalized words in this book. Is there a character named Professor, or is it a title followed by a name?
+In the table from our previous exercise, `"Professor"` appeared 30 times, `"Privet"` appeared 8 times, and `"Dedalus"` appeared once. Are these standalone names, or part of multi-word phrases?
 
-Let's match **one or more capitalized words in a row** by creating a **group** with parentheses `(...)` and applying a quantifier to the whole group:
+To match **multiple capitalized words in a row**, we can wrap a sub-pattern in **parentheses `(...)`** and apply a quantifier (`+` or `*`) to the entire group:
 
 ```r
-str_view("this will be grouped", "([a-z]+ ?)+")
+sample_text <- "Professor Dumbledore met Dedalus Diggle on Privet Drive."
+
+# Match a capitalized word followed by 1+ (space + capitalized word) groups
+str_view(sample_text, r"(\b[A-Z][a-z]+( [A-Z][a-z]+)+\b)")
 ```
 
-The parentheses group `[a-z]+ ?` together so that the `+` quantifier repeats the entire word-plus-optional-space pattern!
+Placing the space inside the repeating group `( [A-Z][a-z]+)+` ensures we only match spaces **between** capitalized words, never a trailing space at the end!
 
 ---
 # Matching Multi-Word Capitalized Phrases
 
-Now let's take our previous capitalized word pattern and group it:
-`(<capital letter><at least five lowercase letters><optional space>){match 1+ times}`
+Let's apply this grouping pattern to our 6+ letter capitalized word rule (`[A-Z][a-z]{5,}`) in Chapter 1 to find multi-word phrases:
 
 ```r
-str_extract_all(ch1, "([A-Z][a-z]{5,} ?)+") |> table()
+# Match 2 or more consecutive 6+ letter capitalized words
+str_extract_all(ch1, r"(\b[A-Z][a-z]{5,}( [A-Z][a-z]{5,})+\b)") |>
+  unlist() |>
+  table()
 ```
 
-Notice how multi-word phrases like `"Professor McGonagall "` and `"Uncle Vernon "` now appear together!
+This finds `"Dedalus Diggle"`, `"London Underground"`, and `"Professor Dumbledore"` — but wait: where are `"Bonfire Night"`, `"Privet Drive"`, `"Harry Potter"`, and `"Professor McGonagall"`?
 
 ---
-# Inspecting `"Bonfire Night"` in Chapter 1
+# Refining Our Multi-Word Name Pattern
 
-In the output on the previous slide, `"Bonfire "` matched, even though the book says `"Bonfire Night"`:
+Let's inspect where `"Bonfire"` appears in Chapter 1:
 
 ```r
 str_locate(ch1, "Bonfire")
-
 str_sub(ch1, 8957, 8957 + 20)
 ```
 
-Why wasn't `"Night"` included in the match?
-* Our pattern `[A-Z][a-z]{5,}` requires **at least five lowercase letters** after the capital letter.
-* `"Night"` only has four lowercase letters (`"ight"`), so it didn't match `[A-Z][a-z]{5,}`!
+Why did `[A-Z][a-z]{5,}` miss `"Bonfire Night"`, `"Harry Potter"`, `"Privet Drive"`, and `"Professor McGonagall"`?
+1. `"Night"`, `"Harry"`, and `"Drive"` only have **4** lowercase letters after the initial capital letter, so `{5,}` was too strict.
+2. `"McGonagall"` has an uppercase `G` in the middle (`Mc` + `Gonagall`), so `[a-z]+` stopped at `"Mc"`.
 
----
-# Backreferences (`\1`, `\2`)
-
-Parentheses also define **capture groups** that can be referred to later in the same match as `\1`, `\2`, etc. This is called a **backreference**.
-
-For example:
-* `(.)\1` matches any character repeated twice in a row.
-* `(.)x\1` matches any character, followed by `x`, followed by that exact same first character:
+By allowing uppercase or lowercase letters `[A-Za-z]{3,}` after the initial capital, we capture all multi-word names cleanly:
 
 ```r
-"eyxyel" |> str_view("(.)x\\1")
-
-# Detecting double letters using a raw string backreference
-str_view(c("apple", "banana", "berry"), r"((.)\1)")
+str_extract_all(ch1, r"(\b[A-Z][A-Za-z]{3,}( [A-Z][A-Za-z]{3,})+\b)") |>
+  unlist() |>
+  table() |>
+  sort(decreasing = TRUE)
 ```
 
 ---
 # Position Anchors: `^` and `$`
 
-Sometimes we want a match to occur only at a specific position in the string:
+By default, a regular expression matches any part of a string. Sometimes we want to lock a match to the start or end of a string:
 * **`^`**: Matches the **start** of the string.
 * **`$`**: Matches the **end** of the string.
+* **`^...$`**: Forces the pattern to match the **entire string** from start to finish.
 
 ```r
-x <- c("apple", "banana", "pear")
+x <- c("apple", "banana", "pear", "apple pie")
 
-# Match strings starting with 'b'
+# Match strings starting with 'b' or ending with 'r'
 str_view(x, "^b")
-
-# Match strings ending with 'r'
 str_view(x, "r$")
+
+# Match ONLY the exact full string "apple" (not "apple pie")
+str_view(x, "^apple$")
 ```
 
-*(Note: `^` at the start of a pattern is a start-of-string anchor, whereas `[^...]` inside square brackets is a negation class!)*
+*(Note: `^` outside brackets is a start-of-string anchor, whereas `[^...]` inside square brackets is a negation class!)*
+
+---
+# Backreferences (`\1`, `\2`)
+
+Parentheses also define numbered **capture groups** that can be referred to later in the same pattern as `\1`, `\2`, etc. This is called a **backreference**:
+* **`(.)\1`**: Any character repeated twice in a row (double letters).
+* **`(..)\1`**: Any two-letter sequence repeated twice in a row.
+* **`^(.).*\1$`**: A word that starts and ends with the exact same character.
+
+```r
+# 1. Detect double letters
+str_view(c("apple", "banana", "berry"), r"((.)\1)")
+
+# 2. Find fruits with a repeated pair of letters (e.g., "anan" in banana, "coco" in coconut)
+str_subset(fruit, r"((..)\1)")
+
+# 3. Find words in stringr::words that start and end with the same letter
+str_subset(words, r"(^(.).*\1$)") |> head(10)
+```
 
 ---
 # Extracting Group Matrices with `str_match()`
 
-`str_match(v, re)` creates a character matrix out of the grouped matches in `re`:
-* Column 1 contains the **whole match**.
-* Additional columns contain each **capture group** `(...)`.
+While `str_extract()` returns only the full match, **`str_match()`** (and `str_match_all()`) returns a character matrix where:
+* **Column 1** contains the **whole match**.
+* **Subsequent columns** contain each individual **capture group** `(...)`.
 
 ```r
-# Match first character and last character of built-in words
-head(str_match(words, "(.).*(.)"))
 
-# Parsing structured log entries with capture groups
-log_entry <- "USER_125: Login Successful"
-str_match(log_entry, r"(USER_(\d+): (.*))")
+# Parse structured log entries into (full match, user ID, status message)
+log_entries <- c("USER_125: Login Successful", "USER_908: Invalid Password")
+str_match(log_entries, r"(USER_(\d+): (.*))")
 ```
 
 ---
-# Replacing Patterns with `str_replace()`
+# Replacing Patterns with `str_replace()` & `str_remove()`
 
-`str_replace(v, re, rep)` replaces the first match of `re` in `v` with `rep` (use `str_replace_all()` to replace all matches):
+* **`str_replace(x, pattern, replacement)`**: Replaces the **first** match in each string.
+* **`str_replace_all(x, pattern, replacement)`**: Replaces **all** matches in each string.
+* **`str_remove_all(x, pattern)`**: Shorthand for replacing all matches with `""`.
+
+You can also use backreferences (`\1`, `\2`) inside the replacement string to rearrange captured pieces:
 
 ```r
 # Basic find and replace
 str_replace("Give me liberty or give me death", "death", "pizza")
 
-# Using backreferences (\1, \2) to swap "Last, First" into "First Last"
+# Use capture groups and backreferences (\1, \2) to swap "Last, First" into "First Last"
 names <- c("Lovelace, Ada", "Turing, Alan", "Hopper, Grace")
 str_replace(names, r"(^(\w+),\s*(\w+)$)", r"(\2 \1)")
 ```
 
----
-# Exercise: Filtering IDs & Sanitizing Prices
-
-1. Given `customers <- c("TX_1001", "ERROR_992", "TX_1002", "MISSING_88")`, use `grepl()` with an anchor to filter only valid IDs starting with `"TX_"`.
-2. Given `prices <- c("$1,200", "$25", "$450.50")`, use `gsub()` to remove `$` and `,` and convert the result to numeric with `as.numeric()`.
-
-```r
-customers <- c("TX_1001", "ERROR_992", "TX_1002", "MISSING_88")
-prices <- c("$1,200", "$25", "$450.50")
-
-# Write your solution below:
-
-```
-
-```r block=answer
-customers <- c("TX_1001", "ERROR_992", "TX_1002", "MISSING_88")
-prices <- c("$1,200", "$25", "$450.50")
-
-valid_ids <- customers[grepl("^TX_", customers)]
-print(valid_ids)
-
-numeric_prices <- as.numeric(gsub("\\$|,", "", prices))
-print(numeric_prices)
-```
 
 ---
 # Lecture Summary & Key Takeaways
@@ -502,5 +504,5 @@ print(numeric_prices)
 * **Raw Strings (`r"(...)"`)**: Avoid double-backslash headaches by writing regex patterns inside raw string literals.
 * **Wildcards & Character Classes**: `.` matches any character; `\w` (word), `\d` (digit), `\s` (whitespace), `\b` (word boundary), and `[...]` / `[^...]` match specific character sets.
 * **Quantifiers**: Control repetition with `?` (0 or 1), `+` (1+), `*` (0+), and `{x,y}`.
-* **Grouping & Backreferences**: Use `(...)` to apply quantifiers to sub-patterns, refer back with `\1`, or extract components into a matrix with `str_match()`.
-* **Anchors & Replacements**: Lock matches to string boundaries with `^` and `$`, and transform text with `str_replace()` / `gsub()`.
+* **Anchors**: Lock matches to the start (`^`) or end (`$`) of a string.
+* **Grouping & Backreferences**: Use `(...)` to repeat multi-token sub-patterns, refer back to captured text with `\1`, extract components into a matrix with `str_match()`, or reformat strings with `str_replace()`.

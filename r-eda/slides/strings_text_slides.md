@@ -419,7 +419,7 @@ What is the longest chapter (in number of characters) in *Philosopher's Stone*?
 
 ```r
 # Find which chapter index has the maximum character length:
-philosophers_stone
+philosophers_stone |> ...
 
 ```
 

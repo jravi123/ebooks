@@ -1,7 +1,7 @@
 # Loops & Vectorized Iteration
 ## Conditional Execution, Imperative Loops, Tidy Evaluation, and purrr Maps
 
-```r block=setup
+```r-setup
 library(tidyverse)
 library(nycflights13)
 set.seed(42)

@@ -327,7 +327,8 @@ str_count(ch1, "\\bh\\w{5}\\b")
 How can we find quotations? The pattern for a quote is:
 `<quotation mark><anything that is not a quotation mark><quotation mark>`
 
-A **negation** is a character class that begins with `^` inside square brackets `[^...]`. It matches anything that is **not** inside the character class:
+A **negation** is a character class that begins with `^` inside square brackets `[^...]`. 
+
 
 ```r
 str_extract_all(ch1, r"(\"[^"]+\")")

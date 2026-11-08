@@ -1,7 +1,7 @@
 # Date & Time Handling
 ## Temporal Classes, Parsing, Timezones, Durations, and Periods with lubridate
 
-```r block=setup
+```r-setup
 library(tidyverse)
 library(lubridate)
 library(nycflights13)
@@ -34,8 +34,12 @@ There are three different date/time classes in R:
 
 There are many different formats, timezones, and leap years to deal with. The **`lubridate`** package (part of the tidyverse) makes working with dates and times much easier:
 
+We have already seen examples of `<dttm>` and `<date>` columns:
+
 ```r
-library(lubridate)
+select(flights, time_hour) |> head()
+
+select(aatemp, DATE) |> head()
 ```
 
 ---
@@ -48,11 +52,7 @@ today()
 now()
 ```
 
-We have already seen examples of `<dttm>` columns in the `nycflights13::flights` tibble:
 
-```r
-select(flights, time_hour) |> print()
-```
 
 ---
 # Parsing Dates: `mdy()`, `ymd()`, and `dmy()`
@@ -61,11 +61,11 @@ Converting strings in different formats into `<date>` objects is easy with `lubr
 
 ```r
 # Only date: specify the order of month (m), day (d), and year (y)
-mdy("10/01/2022") # Oct. 1, 2022
-ymd("2022-10-01")
-dmy("01.10.2022")
-dmy("31-Jan-2017")
-dmy("31 1 2017")
+mdy("10/01/2026") # Oct. 1, 2026
+ymd("2026-10-01")
+dmy("01.10.2026")
+dmy("1-Oct-2026")
+dmy("1 10 2026")
 ```
 
 Notice how `dmy()`, `mdy()`, and `ymd()` automatically handle slashes, hyphens, dots, spaces, and month abbreviations!
@@ -80,6 +80,7 @@ To parse both date and time, append `_hms` (Hours:Minutes:Seconds) or `_hm` (Hou
 ymd_hms("2017-01-31 20:11:59")
 mdy_hms("10/01/2022 12:01:37")
 mdy_hm("01/31/2017 08:01")
+mdy_hm("01/31/2017 08:01 pm")
 ```
 
 * **`UTC`** stands for **Coordinated Universal Time** — the primary time standard by which the world regulates clocks and time (EST is `UTC-5`).
@@ -129,7 +130,7 @@ ymd_hm(dt2)
 ---
 # Using `as_datetime()` & Its Limitations
 
-Sometimes you can get away with calling `as_datetime()` on standard ISO-formatted strings:
+Sometimes you can get away with calling `as_datetime()` on standard ISO-formatted strings ($YYYY\text{-}MM\text{-}DD \ hh:mm:ss$):
 
 ```r
 my_date <- as_datetime("2017-01-02 20:11:59")
@@ -150,6 +151,7 @@ A much better function for irregularly formatted date strings is `parse_date_tim
 
 ```r
 parse_date_time("22/10/1, 10:01:00", orders = "ymd HMS")
+parse_date_time("2022/10/1, 10:01:00", orders = "Ymd HMS")
 ```
 
 Common format specification codes in `orders`:
@@ -240,8 +242,8 @@ right_now + weeks(7)
 After doing date-time math, you often want to convert the resulting `difftime` into specific units using `as.duration()`:
 
 ```r
-# Time difference between Dec 8, 2025 and now
-semester_end <- dmy_hms("08122025 23:59:59") - now()
+# Time difference between Dec 10, 2026 and now
+semester_end <- dmy_hms("10122026 23:59:59") - now()
 semester_end
 
 # Convert difftime to a lubridate duration object
@@ -281,20 +283,20 @@ dyears(1) + dweeks(12) + dhours(15)
 ---
 # The Daylight Saving Time Trap with Durations
 
-You have to be careful when adding **durations** (`ddays()`) to date-times! What is one day after **March 8, 2025, at 1:00 p.m.** in Detroit?
+You have to be careful when adding **durations** (`ddays()`) to date-times! What is one day after **October 31st, 2026, at 1:00 p.m.** in Detroit?
 
 ```r
 # What happened to this addition?
-march8 <- mdy_hm("March. 8, 2025 13:00PM", tz = "America/Detroit")
-march8 + ddays(1)
+oct31 <- mdy_hm("October 31, 2026 13:00PM", tz = "America/Detroit")
+oct31 + ddays(1)
 
 # Whereas starting on March 9 works as expected:
-march9 <- mdy_hm("March. 9, 2025 13:00PM", tz = "America/Detroit")
-march9 + ddays(1)
+nov1 <- mdy_hm("November 1, 2026 13:00PM", tz = "America/Detroit")
+nov1 + ddays(1)
 ```
 
-Why did `march8 + ddays(1)` land at **2:00 p.m. (`14:00:00 EDT`)**?
-* Because Daylight Saving Time started on March 9, so March 8 only had **23 hours**, while `ddays(1)` always adds **86,400 physical seconds** (24 hours)!
+Why did `oct31 + ddays(1)` land at **12:00 p.m.**?
+* Because Standard Time started on Nov 1st, while `ddays(1)` always adds **86,400 physical seconds** (24 hours)!
 
 ---
 # Solving DST Arithmetic with Periods (`days()`)
@@ -302,10 +304,10 @@ Why did `march8 + ddays(1)` land at **2:00 p.m. (`14:00:00 EDT`)**?
 To work in **human calendar/clock time** instead of physical seconds, use **Periods** (`days()`, `hours()`, `months()`, `years()`):
 
 ```r
-march8 <- mdy_hm("March. 8, 2025 13:00PM", tz = "America/Detroit")
+oct31p <- mdy_hm("Oct 10, 2026 13:00PM", tz = "America/Detroit")
 
 # Period addition respects human clock time across DST transitions!
-march8 + days(1)
+oct31p + days(1)
 ```
 
 | Class | Functions | Definition |
@@ -314,20 +316,11 @@ march8 + days(1)
 | **Periods** | `seconds()`, `days()`, `months()`, `years()` | Human clock units (respects leap years & DST) |
 
 ---
-# Exercise: Date Summaries & Anniversary Reminders
+# Mean, median on dates
 
-Given the date strings `ds` below:
-1. Parse `ds` into dates. What is the **range**, **mean**, and **median** date?
-2. Suppose you want reminders for the anniversary of these dates in the **coming year, one month in advance**. Find the reminder dates!
+Parse `ds` into dates. What is the **range**, **mean**, and **median** date?
 
 ```r
-ds <- c("1981-09-25", "1982-03-06", "2010-12-14", "2012-10-18", "2019-04-03")
-
-# Parse ds, find range/mean/median, and compute upcoming reminder dates:
-
-```
-
-```r block=answer
 ds <- c("1981-09-25", "1982-03-06", "2010-12-14", "2012-10-18", "2019-04-03")
 
 # Parse as year-month-day format
@@ -337,6 +330,29 @@ ds_parsed <- ymd(ds)
 range(ds_parsed)
 mean(ds_parsed)
 median(ds_parsed)
+
+```
+
+
+# Exercise: Anniversary Reminders
+
+Given the date strings `ds` below:
+
+Suppose you want reminders for the anniversary of these dates in the **coming year, one month in advance**. Find the reminder dates!
+
+```r
+ds <- c("1981-09-25", "1982-03-06", "2010-12-14", "2012-10-18", "2019-04-03")
+
+# Parse ds, compute upcoming reminder dates:
+
+```
+
+```r block=answer
+ds <- c("1981-09-25", "1982-03-06", "2010-12-14", "2012-10-18", "2019-04-03")
+
+# Parse as year-month-day format
+ds_parsed <- ymd(ds)
+
 
 # Setting reminders 1 month in advance for the coming year
 ds_rem <- ds_parsed - months(1)
@@ -402,16 +418,11 @@ flights |>
 * `517` means **5:17 AM** (`517 %/% 100` = `5` hours, `517 %% 100` = `17` minutes).
 
 ---
-# Exercise: Converting Flight Times to `<dttm>`
+# Converting Flight Times to `<dttm>`
 
-Use `mutate(across(...))` and `make_datetime()` with integer division (`%/% 100`) and remainder (`%% 100`) to convert `dep_time`, `sched_dep_time`, `arr_time`, and `sched_arr_time` into `<dttm>` columns in `flights_dt`:
+Using `mutate(across(...))` and `make_datetime()` with integer division (`%/% 100`) and remainder (`%% 100`) to convert `dep_time`, `sched_dep_time`, `arr_time`, and `sched_arr_time` into `<dttm>` columns in `flights_dt`:
 
 ```r
-# Create flights_dt with dttm columns:
-
-```
-
-```r block=answer
 flights_dt <- flights |>
   mutate(across(
     c(dep_time, sched_dep_time, arr_time, sched_arr_time),
@@ -419,7 +430,9 @@ flights_dt <- flights |>
   ))
 
 flights_dt |> select(dep_time, sched_dep_time, arr_time, sched_arr_time) |> head(4)
+
 ```
+
 
 ---
 # Visualizing Departure Times: Density Plot
@@ -513,20 +526,12 @@ ggplot(sched_dep, aes(minute, avg_delay)) +
 When grouped by scheduled departure minute, there is no strong sawtooth pattern — human schedulers simply prefer scheduling flights on nice "round" minutes (0, 15, 30, 45)!
 
 ---
-# Exercise: Subscription Lifespan Analysis
+# Subscription Lifespan Analysis
 
 1. Parse a customer signup string `"03-Mar-2026"` and cancellation string `"28-Apr-2026"` into `<date>` objects using `dmy()`.
 2. Calculate the active lifespan in **days** (using `-`) and in **weeks** (using `difftime(..., units = "weeks")`).
 
 ```r
-signup_str <- "03-Mar-2026"
-cancel_str <- "28-Apr-2026"
-
-# Parse and calculate lifespan in days and weeks:
-
-```
-
-```r block=answer
 signup <- dmy("03-Mar-2026")
 cancel <- dmy("28-Apr-2026")
 
@@ -536,6 +541,7 @@ weeks_active <- difftime(cancel, signup, units = "weeks")
 print(days_active)
 print(weeks_active)
 ```
+
 
 ---
 # Lecture Summary & Key Takeaways

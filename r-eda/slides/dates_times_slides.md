@@ -281,7 +281,7 @@ dyears(1) + dweeks(12) + dhours(15)
 ```
 
 ---
-# The Daylight Saving Time Trap with Durations
+# The Daylight Saving Time Error with Durations
 
 You have to be careful when adding **durations** (`ddays()`) to date-times! What is one day after **October 31st, 2026, at 1:00 p.m.** in Detroit?
 
@@ -295,7 +295,7 @@ nov1 <- mdy_hm("November 1, 2026 13:00PM", tz = "America/Detroit")
 nov1 + ddays(1)
 ```
 
-Why did `oct31 + ddays(1)` land at **12:00 p.m.**?
+Why did `oct31 13:00PM + ddays(1)` land at **12:00 p.m.** the next day?
 * Because Standard Time started on Nov 1st, while `ddays(1)` always adds **86,400 physical seconds** (24 hours)!
 
 ---
@@ -304,7 +304,7 @@ Why did `oct31 + ddays(1)` land at **12:00 p.m.**?
 To work in **human calendar/clock time** instead of physical seconds, use **Periods** (`days()`, `hours()`, `months()`, `years()`):
 
 ```r
-oct31p <- mdy_hm("Oct 10, 2026 13:00PM", tz = "America/Detroit")
+oct31p <- mdy_hm("Oct 31, 2026 13:00PM", tz = "America/Detroit")
 
 # Period addition respects human clock time across DST transitions!
 oct31p + days(1)
@@ -332,6 +332,8 @@ mean(ds_parsed)
 median(ds_parsed)
 
 ```
+
+---
 
 
 # Exercise: Anniversary Reminders
@@ -394,6 +396,9 @@ aatemp |>
 Using the `weather` table in the `nycflights13` package, compute the average temperature (`temp`) at each airport (`origin`) between **9:00 a.m. and 5:00 p.m.** on **September 1, 2013** (using the `time_hour` column).
 
 ```r
+
+weather |> select(time_hour) |> head()
+
 # Filter weather on time_hour and compute mean(temp) by origin:
 
 ```
@@ -449,7 +454,7 @@ flights_dt <- flights |>
 flights_dt |>
   filter(dep_time < ymd(20130130), dep_time >= ymd(20130120)) |>
   ggplot(aes(x = dep_time)) +
-  geom_density(bw = 3 * 3600) # bw is bandwidth, here 3 hours (in seconds)
+  geom_density(bw = 3 * 3600) # bw is bandwidth, here 3 hours (in seconds) 
 ```
 
 ---
@@ -467,7 +472,7 @@ flights_dt <- flights |>
 flights_dt |>
   filter(dep_time < ymd(20130130), dep_time >= ymd(20130120)) |>
   ggplot(aes(x = dep_time)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 30) # divides continuous data into 30 discrete intervals and counts how many data points fall into each interval
 ```
 
 Why using date-time classes makes analysis cleaner:

@@ -21,78 +21,13 @@ samples_y <- map(samples, ~ runif(length(.x)))
 # Today's Topic & Agenda
 
 After today's lecture you will understand:
-* **Conditional statements**: `if`, `else if`, and `else`
 * **Iteration**: `for` and `while` loops (`break` and `next`)
 * **Dataframe functions**: Tidy evaluation and embracing with `{{ }}`
 * **`purrr` Map family functions**: `map()`, `map_*()`, `map2()`, `keep()`, `reduce()`, `accumulate()`, `imap_dfr()`, and `safely()`
 
 *(These notes correspond to Chapters 26 & 27 of R for Data Science.)*
 
----
-# Conditional Execution
 
-Often when writing functions we need to do different things depending on what data is passed in. This is known as **conditional execution**, and is accomplished using the `if` and/or `else` construct:
-
-```r
-# General syntax:
-# if (condition) {
-#   # code executed when condition is TRUE
-# } else {
-#   # code executed when condition is FALSE
-# }
-```
-
----
-# `if` Statements
-
-The workhorse for conditional execution in R is the `if` statement:
-
-```r
-if (TRUE) { # hard-coded to TRUE, so the if-block always executes
-  print("do something if true")
-}
-
-x <- 1
-if (x > 2) {
-  print(x)
-}
-print("hello")
-```
-
----
-# Optional `else` Block
-
-Use an `else` block to control the flow when the condition is `FALSE`, without separately checking the condition's negation:
-
-```r
-if ((2 + 3) == 5) {
-  print("the statement is true")
-} else {
-  print("the statement is false")
-}
-```
-
----
-# `if-else` Chains
-
-For more complex cases, you can check multiple conditions in sequence using `else if`:
-
-```r
-a <- -1
-b <- 1
-
-if (a * b > 0) {
-  print("Zero is not between a and b")
-} else if (a < b) {
-  smaller <- a
-  larger  <- b
-} else {
-  smaller <- b
-  larger  <- a
-}
-
-c(smaller, larger)
-```
 
 ---
 # Function with Multiple Returns: `fizzbuzz()`
@@ -220,7 +155,7 @@ plot(val, type = "l", main = "Random Walk with break", xlab = "Step", ylab = "Va
 ---
 # Advanced Functions: Scope (`<<-`) & Ellipsis (`...`)
 
-Before writing dataframe and mapping functions, recall two key R function features:
+Before writing dataframe and mapping functions, let us revisit two key R function features:
 
 1. **Super-Assignment (`<<-`)**: Modifies a variable in a parent/global environment rather than the function's local scope.
 2. **The Ellipsis (`...`)**: Captures arbitrary extra arguments and passes them down to inner functions:
@@ -234,6 +169,7 @@ custom_mean <- function(data, ...) {
 }
 
 custom_mean(c(10, 20, NA, 30), na.rm = TRUE)
+custom_mean(c(30, 50, NA, 40), na.rm = FALSE)
 print(total_runs)
 ```
 
@@ -244,17 +180,17 @@ print(total_runs)
 
 ```r
 # Why does grouped_mean(mpg, model, hwy) fail without {{ }}?
-# Fix grouped_mean below by embracing group_var and mean_var with {{ }}:
 grouped_mean <- function(df, group_var, mean_var) {
   df |>
-    group_by({{ group_var }}) |>
-    summarize(mean({{ mean_var }}))
+    group_by(group_var) |>
+    summarize(mean(mean_var))
 }
 
 grouped_mean(mpg, model, hwy) |> head(5)
 ```
 
 ```r block=answer
+# Fix grouped_mean below by embracing group_var and mean_var with {{ }}:
 grouped_mean <- function(df, group_var, mean_var) {
   df |>
     group_by({{ group_var }}) |>
@@ -296,6 +232,11 @@ r_pois_norm <- function(n, mu = 0, sd = 1) {
 
 samples <- r_pois_norm(3)
 samples
+
+for (item in samples){
+  print(length(item))
+}
+
 ```
 
 ---
@@ -328,7 +269,7 @@ Use `map()` to square (raise to the power of 2) each number in the vector `v`:
 ```r
 v <- c(2, 4, 5, 7)
 
-# Use map() with a formula (~ .x^2) or a custom function:
+# Use map() with a formula (~ .x^2) or a custom function
 
 ```
 
@@ -379,10 +320,9 @@ If you know that all entries in the list will be of a specific atomic type, you 
 * **`chr`**: Character / strings
 
 ```r
-map(samples, ~ max(abs(.x))) |> list_simplify()
+map_dbl(samples, ~ max(abs(.x)))
 ```
 
-If the types don't match what you asked for, `purrr` throws an informative type error instead of silently coercing!
 
 ---
 # Type-Safe `map_*()` Variants
@@ -533,28 +473,13 @@ imap_dfr(samples, ~ tibble(x = .x, sample_num = .y)) |>
 *(There is also `map_dfc()` to bind columns together.)*
 
 ---
-# Built-in Base R Apply Functions
-
-Base R has several built-in functions that are similar to `purrr::map_*`:
-
-* **`lapply(X, FUN)`**: Similar to `map()`, always returns a list, but does not support `~ .x` formula shorthand.
-* **`sapply(X, FUN)`**: Tries to simplify output to a vector/matrix, but does **no type checking** (silently returns a list if simplification fails).
-* **`vapply(X, FUN, FUN.VALUE)`**: Type-safe like `map_*()`, but more verbose syntax.
-* **`mapply(FUN, ...)`**: Similar to `map2()` / `pmap()`, and Base R also has `Map()` and `Reduce()`.
-
-```r
-lapply(samples, max)
-sapply(samples, max)
-```
-
----
 # Catching Errors in Iteration with `safely()`
 
 If an error occurs mid-iteration inside `map()`, it can be frustrating when the entire pipeline halts:
 
 ```r
 x <- list(1, 10, "3", 7)
-# map(x, log) -> Error: non-numeric argument to mathematical function!
+map(x, log)  # Error: non-numeric argument to mathematical function!
 ```
 
 `safely()` wraps a function so it never throws an error — instead, it returns a list with `$result` and `$error` for every element:
@@ -570,7 +495,7 @@ map(x, safe_log)
 ---
 # Lecture Summary & Key Takeaways
 
-* **Conditionals & Loops**: Use `if` / `else if` / `else` for branching, `for` loops for known sequences, `while` loops (with `maxIter` safety limits!) for simulations, and `next` / `break` for loop control.
+* `for` loops for known sequences, `while` loops (with `maxIter` safety limits!) for simulations, and `next` / `break` for loop control.
 * **Tidy Evaluation (`{{ }}`)**: Embrace column-name arguments inside custom `dplyr` / `ggplot2` functions using `{{ var }}`.
 * **`purrr::map` Family**: Use `map()` for lists and `map_dbl()`, `map_int()`, `map_lgl()`, `map_chr()` for type-safe atomic vectors; use `map2()` for parallel iteration over two inputs.
 * **List Operations & Error Handling**: Use `keep()` / `discard()` to filter lists, `reduce()` / `accumulate()` to fold values, `imap_dfr()` to build indexed tibbles, and `safely()` to catch iteration errors gracefully.

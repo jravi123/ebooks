@@ -296,7 +296,7 @@ Use `map()` on the `nycflights13::flights` dataframe to return a short `summary(
 ```
 
 ```r block=answer
-map(flights, ~ summary(.x))
+map(flights, summary)
 ```
 
 ---
@@ -444,8 +444,6 @@ max_length
 `reduce()` avoids manual accumulator bookkeeping, and `accumulate()` shows all intermediate results:
 
 ```r
-# Find maximum sample length using map_dbl() + reduce()
-map_dbl(samples, length) |> reduce(max)
 
 # Sum a vector with reduce() vs. viewing running sums with accumulate()
 reduce(c(1, 10, 100, 2, 3, 4), `+`)
